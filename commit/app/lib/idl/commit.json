@@ -1,0 +1,1551 @@
+{
+  "address": "3Gd8xHLKGjj8evBtwQUTnawSTwWdbeAxZmtVyxMPm29G",
+  "metadata": {
+    "name": "commit",
+    "version": "0.1.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "claim_reward",
+      "discriminator": [
+        149,
+        95,
+        181,
+        242,
+        94,
+        90,
+        158,
+        162
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "completion_mint",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "user_nft_ata",
+          "writable": true
+        },
+        {
+          "name": "streak_proof",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  111,
+                  102
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "token_2022_program",
+          "address": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "create_streak",
+      "discriminator": [
+        121,
+        38,
+        140,
+        196,
+        52,
+        42,
+        69,
+        232
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  114,
+                  101,
+                  97,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "creator"
+              },
+              {
+                "kind": "arg",
+                "path": "args.name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "phash_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  104,
+                  97,
+                  115,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreateStreakArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "dispute_checkin",
+      "discriminator": [
+        84,
+        122,
+        14,
+        225,
+        178,
+        200,
+        13,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "relations": [
+            "attestation",
+            "disputer_participant"
+          ]
+        },
+        {
+          "name": "target_participant",
+          "docs": [
+            "The participant whose check-in is being disputed"
+          ]
+        },
+        {
+          "name": "attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "target_participant"
+              },
+              {
+                "kind": "account",
+                "path": "attestation.day_index",
+                "account": "CheckinAttestation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "disputer_participant",
+          "docs": [
+            "The disputer's own Participant account in this streak"
+          ]
+        },
+        {
+          "name": "disputer_token_account",
+          "writable": true
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "disputer_user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_checkin",
+      "discriminator": [
+        208,
+        31,
+        28,
+        61,
+        7,
+        215,
+        252,
+        56
+      ],
+      "accounts": [
+        {
+          "name": "attestation",
+          "writable": true
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "attestation.streak",
+                "account": "CheckinAttestation"
+              },
+              {
+                "kind": "account",
+                "path": "participant.user",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "streak",
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "phash_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  104,
+                  97,
+                  115,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "attestation.streak",
+                "account": "CheckinAttestation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "caller",
+          "docs": [
+            "Permissionless — anyone can finalize after the window"
+          ],
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "join_streak",
+      "discriminator": [
+        183,
+        193,
+        86,
+        153,
+        213,
+        86,
+        105,
+        47
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "resolve_dispute",
+      "discriminator": [
+        231,
+        6,
+        202,
+        6,
+        96,
+        103,
+        12,
+        230
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true,
+          "relations": [
+            "attestation"
+          ]
+        },
+        {
+          "name": "target_participant",
+          "writable": true
+        },
+        {
+          "name": "attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "target_participant"
+              },
+              {
+                "kind": "account",
+                "path": "attestation.day_index",
+                "account": "CheckinAttestation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "disputer",
+          "writable": true
+        },
+        {
+          "name": "disputer_token_account",
+          "writable": true
+        },
+        {
+          "name": "target_token_account",
+          "writable": true
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "resolver",
+          "docs": [
+            "Anyone can call resolve — permissionless"
+          ],
+          "signer": true
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "ResolveDisputeArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "slash_missed",
+      "discriminator": [
+        233,
+        233,
+        85,
+        66,
+        121,
+        155,
+        236,
+        95
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              },
+              {
+                "kind": "account",
+                "path": "participant.user",
+                "account": "Participant"
+              }
+            ]
+          }
+        },
+        {
+          "name": "caller",
+          "docs": [
+            "Permissionless — anyone can slash after the grace period"
+          ],
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "submit_checkin_with_attestation",
+      "discriminator": [
+        132,
+        208,
+        246,
+        70,
+        210,
+        5,
+        42,
+        207
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "relations": [
+            "participant",
+            "phash_registry"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              },
+              {
+                "kind": "account",
+                "path": "participant_user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "participant"
+              },
+              {
+                "kind": "arg",
+                "path": "args.day_index"
+              }
+            ]
+          }
+        },
+        {
+          "name": "phash_registry",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  104,
+                  97,
+                  115,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "participant_user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "instructions_sysvar",
+          "address": "Sysvar1nstructions1111111111111111111111111"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "SubmitCheckinArgs"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "CheckinAttestation",
+      "discriminator": [
+        32,
+        251,
+        93,
+        23,
+        232,
+        162,
+        17,
+        242
+      ]
+    },
+    {
+      "name": "Participant",
+      "discriminator": [
+        32,
+        142,
+        108,
+        79,
+        247,
+        179,
+        54,
+        6
+      ]
+    },
+    {
+      "name": "PhashRegistry",
+      "discriminator": [
+        124,
+        77,
+        98,
+        159,
+        204,
+        36,
+        89,
+        106
+      ]
+    },
+    {
+      "name": "Streak",
+      "discriminator": [
+        59,
+        180,
+        36,
+        87,
+        69,
+        188,
+        77,
+        88
+      ]
+    },
+    {
+      "name": "StreakProof",
+      "discriminator": [
+        185,
+        131,
+        91,
+        117,
+        67,
+        172,
+        131,
+        96
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "StreakAlreadyStarted",
+      "msg": "Cannot join after streak has started"
+    },
+    {
+      "code": 6001,
+      "name": "StreakFull",
+      "msg": "Streak is full"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidDayIndex",
+      "msg": "Day index does not match elapsed time"
+    },
+    {
+      "code": 6003,
+      "name": "MissingSigVerify",
+      "msg": "Missing ed25519 sigverify instruction"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidSignature",
+      "msg": "Signature verification failed"
+    },
+    {
+      "code": 6005,
+      "name": "VerdictWasReject",
+      "msg": "Verifier rejected the check-in"
+    },
+    {
+      "code": 6006,
+      "name": "PhotoReuseDetected",
+      "msg": "Photo too similar to a previous check-in"
+    },
+    {
+      "code": 6007,
+      "name": "DisputeWindowClosed",
+      "msg": "Dispute window has closed"
+    },
+    {
+      "code": 6008,
+      "name": "DisputeWindowOpen",
+      "msg": "Dispute window is still open"
+    },
+    {
+      "code": 6009,
+      "name": "NotADifferentParticipant",
+      "msg": "Cannot dispute your own attestation"
+    },
+    {
+      "code": 6010,
+      "name": "AttestationNotPending",
+      "msg": "Attestation is not in Pending state"
+    },
+    {
+      "code": 6011,
+      "name": "AttestationNotDisputed",
+      "msg": "Attestation is not in Disputed state"
+    },
+    {
+      "code": 6012,
+      "name": "CounterAttestationMismatch",
+      "msg": "Counter-attestation does not match original"
+    },
+    {
+      "code": 6013,
+      "name": "ParticipantInactive",
+      "msg": "Participant is not active"
+    },
+    {
+      "code": 6014,
+      "name": "StreakIncomplete",
+      "msg": "Streak not yet complete"
+    },
+    {
+      "code": 6015,
+      "name": "TooEarlyToSlash",
+      "msg": "Too early to slash — 48h must elapse"
+    },
+    {
+      "code": 6016,
+      "name": "NameTooLong",
+      "msg": "Name too long (max 64)"
+    },
+    {
+      "code": 6017,
+      "name": "PromptTooLong",
+      "msg": "Prompt too long (max 256)"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidDuration",
+      "msg": "Invalid duration"
+    },
+    {
+      "code": 6019,
+      "name": "InvalidPenaltyPercent",
+      "msg": "Invalid penalty percent"
+    },
+    {
+      "code": 6020,
+      "name": "InvalidStakeAmount",
+      "msg": "Invalid stake amount"
+    },
+    {
+      "code": 6021,
+      "name": "InvalidMaxParticipants",
+      "msg": "Invalid max participants"
+    },
+    {
+      "code": 6022,
+      "name": "InvalidStartTime",
+      "msg": "Start time must be in the future"
+    },
+    {
+      "code": 6023,
+      "name": "AlreadyClaimed",
+      "msg": "Already claimed"
+    },
+    {
+      "code": 6024,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    }
+  ],
+  "types": [
+    {
+      "name": "AttestationState",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "Disputed"
+          },
+          {
+            "name": "Finalized"
+          },
+          {
+            "name": "Overturned"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CheckinAttestation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "participant",
+            "type": "pubkey"
+          },
+          {
+            "name": "streak",
+            "type": "pubkey"
+          },
+          {
+            "name": "day_index",
+            "type": "u16"
+          },
+          {
+            "name": "photo_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "phash",
+            "type": "u64"
+          },
+          {
+            "name": "verifier_signature",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          },
+          {
+            "name": "verdict",
+            "type": "bool"
+          },
+          {
+            "name": "reason_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "dispute_window_ends",
+            "type": "i64"
+          },
+          {
+            "name": "state",
+            "type": {
+              "defined": {
+                "name": "AttestationState"
+              }
+            }
+          },
+          {
+            "name": "disputer",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "dispute_bond",
+            "type": "u64"
+          },
+          {
+            "name": "final_verdict",
+            "type": {
+              "option": "bool"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateStreakArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "habit_type",
+            "type": {
+              "defined": {
+                "name": "HabitType"
+              }
+            }
+          },
+          {
+            "name": "habit_prompt",
+            "type": "string"
+          },
+          {
+            "name": "duration_days",
+            "type": "u8"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "penalty_percent",
+            "type": "u8"
+          },
+          {
+            "name": "start_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "max_participants",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HabitType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Code"
+          },
+          {
+            "name": "Read"
+          },
+          {
+            "name": "Write"
+          },
+          {
+            "name": "Design"
+          },
+          {
+            "name": "Gym"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Participant",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "user",
+            "type": "pubkey"
+          },
+          {
+            "name": "streak",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake_locked",
+            "type": "u64"
+          },
+          {
+            "name": "current_streak",
+            "type": "u16"
+          },
+          {
+            "name": "last_finalized_day",
+            "type": "u16"
+          },
+          {
+            "name": "last_checkin_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          },
+          {
+            "name": "has_claimed",
+            "type": "bool"
+          },
+          {
+            "name": "disputes_filed_against",
+            "type": "u16"
+          },
+          {
+            "name": "disputes_upheld",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PhashRegistry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "streak",
+            "type": "pubkey"
+          },
+          {
+            "name": "hashes",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ResolveDisputeArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "counter_verdict",
+            "type": "bool"
+          },
+          {
+            "name": "counter_reason_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "counter_signature",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Streak",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "habit_type",
+            "type": {
+              "defined": {
+                "name": "HabitType"
+              }
+            }
+          },
+          {
+            "name": "habit_prompt",
+            "type": "string"
+          },
+          {
+            "name": "duration_days",
+            "type": "u8"
+          },
+          {
+            "name": "stake_amount",
+            "type": "u64"
+          },
+          {
+            "name": "penalty_percent",
+            "type": "u8"
+          },
+          {
+            "name": "max_participants",
+            "type": "u32"
+          },
+          {
+            "name": "start_timestamp",
+            "type": "i64"
+          },
+          {
+            "name": "total_pool",
+            "type": "u64"
+          },
+          {
+            "name": "participant_count",
+            "type": "u32"
+          },
+          {
+            "name": "active_count",
+            "type": "u32"
+          },
+          {
+            "name": "completed_count",
+            "type": "u32"
+          },
+          {
+            "name": "escrow_token_account",
+            "type": "pubkey"
+          },
+          {
+            "name": "phash_registry",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "StreakProof",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "streak",
+            "type": "pubkey"
+          },
+          {
+            "name": "habit_name",
+            "type": "string"
+          },
+          {
+            "name": "duration_days",
+            "type": "u8"
+          },
+          {
+            "name": "stake_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "pool_share_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "completed_at",
+            "type": "i64"
+          },
+          {
+            "name": "attestation_hashes",
+            "type": {
+              "vec": {
+                "array": [
+                  "u8",
+                  32
+                ]
+              }
+            }
+          },
+          {
+            "name": "disputes_filed_against",
+            "type": "u16"
+          },
+          {
+            "name": "disputes_upheld",
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SubmitCheckinArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "day_index",
+            "type": "u16"
+          },
+          {
+            "name": "photo_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "phash",
+            "type": "u64"
+          },
+          {
+            "name": "verdict",
+            "type": "bool"
+          },
+          {
+            "name": "reason_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "verifier_signature",
+            "type": {
+              "array": [
+                "u8",
+                64
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
