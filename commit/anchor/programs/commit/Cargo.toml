@@ -1,0 +1,23 @@
+[package]
+name = "commit"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "commit"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.32.1", features = ["token", "token_2022", "associated_token"] }
+# Match spl-token-2022 version pulled in by anchor-spl; disable zk-ops via default-features = false
+spl-token-2022 = { version = "8", default-features = false, features = ["no-entrypoint"] }
+spl-token-metadata-interface = { version = "0.6" }
