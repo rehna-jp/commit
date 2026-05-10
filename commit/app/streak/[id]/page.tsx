@@ -186,9 +186,19 @@ export default function StreakDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {canJoin && connected && (
+            {connected && (
               <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 shadow-xl">
-                 <StakeWidget streak={streak} userAddress={address ?? undefined} onJoined={() => {}} />
+                {canJoin ? (
+                  <StakeWidget streak={streak} userAddress={address ?? undefined} onJoined={() => {}} />
+                ) : userParticipant ? (
+                  <div className="bg-black/20 border border-green-400/20 rounded-2xl p-5 flex items-center gap-3">
+                    <span className="inline-block size-2.5 rounded-full bg-green-400 animate-pulse shrink-0" />
+                    <div>
+                      <p className="text-sm font-bold text-white">You are a participant</p>
+                      <p className="text-xs text-smoke-500 mt-0.5">Your stake of {formatUsdc(userParticipant.stakeLocked)} USDC is locked in escrow</p>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
             
