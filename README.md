@@ -21,8 +21,8 @@ Streak completion mints a Token-2022 NFT with the `NonTransferable` extension en
 
 ## Live Demo
 
-- **App:** [your-vercel-url]
-- **Demo Video:** [your-video-link]
+- **App:** (https://commit-gamma-two.vercel.app/)
+- **Demo Video:** (https://youtu.be/-9mQFFEL11I)
 
 ---
 
