@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useWallets } from '@privy-io/react-auth';
+import { PublicKey } from '@solana/web3.js';
 import { ArrowRight, Loader2, Globe, Coins } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatUsdc, LIFI_CHAIN_IDS } from '@/app/lib/constants';
 import { findSolanaWallet, findEvmWallet } from '@/app/lib/privy-utils';
 import { getStakeRoutes, executeStakeRoute, formatRouteTime, formatRouteFee } from '@/app/lib/lifi';
+import { buildJoinStreakIxs } from '@/app/lib/solana';
+import { useSolanaTransaction } from '@/app/lib/use-solana-tx';
 import type { Route } from '@lifi/sdk';
 import type { Streak } from '@/app/lib/types';
 
@@ -34,6 +37,7 @@ export function StakeWidget({ streak, userAddress, onJoined }: Props) {
   const [loadingRoutes, setLoadingRoutes] = useState(false);
   const [executing, setExecuting] = useState(false);
   const { wallets } = useWallets();
+  const { sendTransaction, sending } = useSolanaTransaction();
 
   async function handleGetRoutes() {
     if (!userAddress) {
@@ -88,11 +92,18 @@ export function StakeWidget({ streak, userAddress, onJoined }: Props) {
   }
 
   async function handleSolanaJoin() {
-    toast.info('Joining streak requires the deployed Anchor program — coming soon!');
-    // TODO: Build and send join_streak tx with Privy Solana wallet
-    // const solanaWallet = wallets.find(w => w.chainType === 'solana');
-    // const tx = await buildJoinStreakTx(new PublicKey(userAddress!), new PublicKey(streak.pubkey));
-    // ...
+    if (!userAddress) { toast.error('Connect your Solana wallet first'); return; }
+    try {
+      const ixs = await buildJoinStreakIxs(
+        new PublicKey(userAddress),
+        new PublicKey(streak.pubkey)
+      );
+      await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
+      toast.success('Joined! Stake locked in escrow.');
+      onJoined();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to join streak');
+    }
   }
 
   return (
@@ -137,9 +148,11 @@ export function StakeWidget({ streak, userAddress, onJoined }: Props) {
           </p>
           <button
             onClick={() => void handleSolanaJoin()}
-            className="w-full bg-grape-500 text-white hover:bg-grape-600 rounded-lg py-2.5 text-sm font-medium transition-colors"
+            disabled={sending}
+            className="w-full flex items-center justify-center gap-2 bg-grape-500 text-white hover:bg-grape-600 disabled:opacity-70 rounded-lg py-2.5 text-sm font-medium transition-colors"
           >
-            Join Streak
+            {sending && <Loader2 size={14} className="animate-spin" />}
+            {sending ? 'Joining…' : 'Join Streak'}
           </button>
         </div>
       )}

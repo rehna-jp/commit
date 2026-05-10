@@ -275,3 +275,56 @@ export function useAllStreaks() {
 
   return { streaks, loading, refetch: fetch };
 }
+
+// Returns all participant PDAs for a given user address, along with the streak pubkeys.
+export function useUserParticipants(userAddress: string | null) {
+  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!userAddress) { setParticipants([]); return; }
+    setLoading(true);
+    try {
+      const userPk = new PublicKey(userAddress);
+      getProgram()
+        .account['participant'].all([
+          { memcmp: { offset: 8, bytes: userPk.toBase58() } },
+        ])
+        .then((accounts) => {
+          setParticipants(accounts.map((a) => rawToParticipant(a.publicKey.toBase58(), a.account)));
+        })
+        .catch(() => setParticipants([]))
+        .finally(() => setLoading(false));
+    } catch {
+      setParticipants([]);
+      setLoading(false);
+    }
+  }, [userAddress]);
+
+  return { participants, loading };
+}
+
+// Fetches streaks that the user has joined (via their participant accounts).
+export function useUserStreaks(userAddress: string | null) {
+  const { participants, loading: pLoading } = useUserParticipants(userAddress);
+  const [streaks, setStreaks] = useState<Streak[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (participants.length === 0) { setStreaks([]); return; }
+    setLoading(true);
+    const streakKeys = [...new Set(participants.map((p) => p.streak))];
+    Promise.all(
+      streakKeys.map((key) =>
+        getProgram()
+          .account['streak'].fetchNullable(new PublicKey(key))
+          .then((raw) => (raw ? rawToStreak(key, raw) : null))
+          .catch(() => null)
+      )
+    )
+      .then((results) => setStreaks(results.filter((s): s is Streak => s !== null)))
+      .finally(() => setLoading(false));
+  }, [participants]);
+
+  return { streaks, participants, loading: pLoading || loading };
+}

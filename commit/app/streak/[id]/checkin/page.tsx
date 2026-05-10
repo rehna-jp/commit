@@ -189,14 +189,9 @@ function buildAttestationMessage(
   const msg = new Uint8Array(171);
   const view = new DataView(msg.buffer);
   let offset = 0;
-  const verifierBytes = Buffer.from(result.verifier_pubkey.length === 44
-    ? require('bs58').decode(result.verifier_pubkey)
-    : Buffer.from(result.verifier_pubkey, 'hex'));
-  msg.set(verifierBytes.slice(0, 32), offset); offset += 32;
-  const participantBytes = require('bs58').decode(participantPubkey);
-  msg.set(participantBytes.slice(0, 32), offset); offset += 32;
-  const streakBytes = require('bs58').decode(streakPubkey);
-  msg.set(streakBytes.slice(0, 32), offset); offset += 32;
+  msg.set(new PublicKey(result.verifier_pubkey).toBytes(), offset); offset += 32;
+  msg.set(new PublicKey(participantPubkey).toBytes(), offset); offset += 32;
+  msg.set(new PublicKey(streakPubkey).toBytes(), offset); offset += 32;
   view.setUint16(offset, dayIndex, true); offset += 2;
   msg.set(Buffer.from(result.photo_hash, 'hex').slice(0, 32), offset); offset += 32;
   view.setBigUint64(offset, BigInt('0x' + result.phash), true); offset += 8;

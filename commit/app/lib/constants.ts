@@ -30,10 +30,12 @@ export const LIFI_SOLANA_CHAIN_ID = 1151111081099710;
 
 export const USDC_DECIMALS = 6;
 
-export const DISPUTE_WINDOW_SECONDS = 86_400;
+export const DISPUTE_WINDOW_SECONDS = process.env.NEXT_PUBLIC_DEVNET_MODE === 'true' ? 60 : 86_400;
 export const DISPUTE_BOND_BPS = 1000;
 export const DISPUTE_BOUNTY_BPS = 3000;
 export const PHASH_HAMMING_THRESHOLD = 8;
+
+export const DEVNET_MODE = process.env.NEXT_PUBLIC_DEVNET_MODE === 'true';
 
 export const LIFI_CHAIN_IDS: Record<string, number> = {
   ethereum: 1,

@@ -8,6 +8,14 @@ const nextConfig: NextConfig = {
     },
   },
   webpack: (config, { isServer, webpack }) => {
+    // Silence WalletConnect → pino → thread-stream test-file warnings.
+    // These test helpers aren't needed at runtime and can't be resolved by webpack.
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^(why-is-node-running|thread-stream\/test\/)$/,
+      })
+    );
+
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,

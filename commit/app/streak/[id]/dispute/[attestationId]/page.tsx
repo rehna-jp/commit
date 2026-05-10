@@ -11,9 +11,9 @@ import { DisputeButton } from '../../../../components/DisputeButton';
 import { findSolanaWallet } from '../../../../lib/privy-utils';
 import { useAttestation, useStreak, useParticipant } from '../../../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../../../lib/use-solana-tx';
-import { buildDisputeCheckinIxs, buildResolveDisputeIxs, findParticipantPda, getUsdcAta } from '../../../../lib/solana';
+import { buildDisputeCheckinIxs, buildResolveDisputeIxs, buildFinalizeCheckinIxs } from '../../../../lib/solana';
 import { AttestationState } from '../../../../lib/types';
-import { formatUsdc, DISPUTE_BOND_BPS } from '../../../../lib/constants';
+import { formatUsdc, DISPUTE_BOND_BPS, DEVNET_MODE } from '../../../../lib/constants';
 import type { VerifyCheckinResponse } from '../../../../lib/types';
 
 const STATE_LABELS: Record<AttestationState, string> = {
@@ -23,8 +23,13 @@ const STATE_LABELS: Record<AttestationState, string> = {
   [AttestationState.Overturned]: 'Overturned',
 };
 
-function formatCountdown(s: number) {
+function formatCountdown(s: number): string {
   if (s <= 0) return 'Expired';
+  if (DEVNET_MODE) {
+    if (s < 60) return `${Math.ceil(s)}s remaining`;
+    const m = Math.floor(s / 60), sec = Math.ceil(s % 60);
+    return `${m}m ${sec}s remaining`;
+  }
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
   return `${h}h ${m}m remaining`;
 }
@@ -40,7 +45,7 @@ export default function DisputePage() {
   const [resolving, setResolving] = useState(false);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now() / 1000), 10_000);
+    const t = setInterval(() => setNow(Date.now() / 1000), DEVNET_MODE ? 1_000 : 10_000);
     return () => clearInterval(t);
   }, []);
 
@@ -55,6 +60,23 @@ export default function DisputePage() {
   const canDispute = attestation?.state === AttestationState.Pending &&
     secondsLeft > 0 && !!userParticipant &&
     userParticipant.pubkey !== attestation.participant;
+
+  const canFinalize = attestation?.state === AttestationState.Pending && secondsLeft <= 0;
+
+  async function handleFinalize() {
+    if (!solanaWallet?.address || !id || !attestation) return;
+    try {
+      const caller = new PublicKey(solanaWallet.address);
+      const streakPk = new PublicKey(id);
+      const participantPk = new PublicKey(attestation.participant);
+      const attestationPk = new PublicKey(attestation.pubkey);
+      const ixs = await buildFinalizeCheckinIxs(caller, attestationPk, participantPk, streakPk);
+      await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
+      toast.success('Check-in finalized — accepted on-chain.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Finalization failed');
+    }
+  }
 
   async function handleDispute() {
     if (!solanaWallet?.address || !id || !attestation) return;
@@ -223,6 +245,22 @@ export default function DisputePage() {
               </div>
             )}
 
+            {canFinalize && (
+              <div>
+                <p className="text-sm text-zinc-500 dark:text-smoke-600 mb-3">
+                  The dispute window has closed with no challenges. Anyone can finalize this check-in now.
+                </p>
+                <button
+                  onClick={() => void handleFinalize()}
+                  disabled={sending}
+                  className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 disabled:opacity-70 rounded-lg px-5 py-2.5 text-sm font-medium w-full sm:w-auto justify-center"
+                >
+                  {sending && <Loader2 size={14} className="animate-spin" />}
+                  Finalize Check-in
+                </button>
+              </div>
+            )}
+
             {attestation.state === AttestationState.Disputed && (
               <div>
                 <p className="text-sm text-zinc-500 dark:text-smoke-600 mb-3">
@@ -257,13 +295,12 @@ function buildCounterAttestationMessage(
   streakPubkey: string,
   dayIndex: number
 ): Uint8Array {
-  const bs58 = require('bs58');
   const msg = new Uint8Array(171);
   const view = new DataView(msg.buffer);
   let offset = 0;
-  msg.set(bs58.decode(result.verifier_pubkey).slice(0, 32), offset); offset += 32;
-  msg.set(bs58.decode(participantPubkey).slice(0, 32), offset); offset += 32;
-  msg.set(bs58.decode(streakPubkey).slice(0, 32), offset); offset += 32;
+  msg.set(new PublicKey(result.verifier_pubkey).toBytes(), offset); offset += 32;
+  msg.set(new PublicKey(participantPubkey).toBytes(), offset); offset += 32;
+  msg.set(new PublicKey(streakPubkey).toBytes(), offset); offset += 32;
   view.setUint16(offset, dayIndex, true); offset += 2;
   msg.set(Buffer.from(result.photo_hash, 'hex').slice(0, 32), offset); offset += 32;
   view.setBigUint64(offset, BigInt('0x' + result.phash), true); offset += 8;

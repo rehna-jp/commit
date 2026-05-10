@@ -22,28 +22,29 @@ export function Navbar() {
 
   return (
     <nav className="border-b border-grape-300 bg-amethyst-500/80 backdrop-blur-sm sticky top-0 z-50">
-      <div className="mx-auto max-w-6xl px-6 h-14 flex items-center justify-between">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 h-14 flex items-center justify-between">
         <Link href="/">
           <Image src="/commit-logo.png" alt="commit" width={32} height={32} className="rounded" />
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {authenticated ? (
             <>
               <Link
                 href="/dashboard"
-                className="text-sm text-smoke-500 hover:text-white transition-colors"
+                className="hidden sm:block text-sm text-smoke-500 hover:text-white transition-colors"
               >
                 Dashboard
               </Link>
               <Link
                 href="/streak/create"
-                className="bg-grape-500 text-white hover:bg-grape-600 rounded-lg px-4 py-1.5 text-sm font-medium transition-colors"
+                className="bg-grape-500 text-white hover:bg-grape-600 rounded-lg px-3 sm:px-4 py-1.5 text-sm font-medium transition-colors"
               >
-                + New Streak
+                <span className="hidden sm:inline">+ New Streak</span>
+                <span className="sm:hidden">+ New</span>
               </Link>
               {displayAddr && (
-                <span className="font-mono text-xs bg-grape-300 text-grape-900 px-2.5 py-1 rounded-lg">
+                <span className="font-mono text-xs bg-grape-300 text-grape-900 px-2 sm:px-2.5 py-1 rounded-lg">
                   {displayAddr}
                 </span>
               )}
