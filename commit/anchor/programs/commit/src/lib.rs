@@ -16,7 +16,7 @@ declare_id!("3Gd8xHLKGjj8evBtwQUTnawSTwWdbeAxZmtVyxMPm29G");
 // To regenerate for production: node anchor/scripts/gen-verifier-keypair.js
 pub const VERIFIER_PUBKEY: [u8; 32] = [25, 127, 107, 35, 225, 108, 133, 50, 198, 171, 200, 56, 250, 205, 94, 167, 137, 190, 12, 118, 178, 146, 3, 52, 3, 155, 250, 139, 61, 54, 141, 97];
 
-pub const DISPUTE_WINDOW_SECONDS: i64 = 86_400;      // 24 hours
+pub const DISPUTE_WINDOW_SECONDS: i64 = 60;           // 1 minute (devnet testing — restore to 86_400 for production)
 pub const DISPUTE_BOND_PERCENT: u64 = 10;             // 10% of stake
 pub const DISPUTE_BOUNTY_PERCENT: u64 = 30;           // 30% of slash amount
 pub const PHASH_HAMMING_THRESHOLD: u32 = 8;

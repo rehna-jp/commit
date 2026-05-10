@@ -1,21 +1,19 @@
-"use client";
+'use client';
 
-import { ThemeProvider } from "next-themes";
-import { Toaster } from "sonner";
-import { PropsWithChildren } from "react";
-import { ClusterProvider } from "./cluster-context";
-import { WalletProvider } from "../lib/wallet/context";
-import { SolanaClientProvider } from "../lib/solana-client-context";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { useState } from 'react';
+import { WalletContextProvider } from '@/app/lib/wallet-context';
 
-export function Providers({ children }: PropsWithChildren) {
+export function Providers({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark">
-      <ClusterProvider>
-        <SolanaClientProvider>
-          <WalletProvider>{children}</WalletProvider>
-        </SolanaClientProvider>
+    <WalletContextProvider>
+      <QueryClientProvider client={queryClient}>
+        {children}
         <Toaster position="bottom-right" richColors />
-      </ClusterProvider>
-    </ThemeProvider>
+      </QueryClientProvider>
+    </WalletContextProvider>
   );
 }

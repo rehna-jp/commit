@@ -11,25 +11,15 @@
   --muted-foreground: #737373;
   --card: #ffffff;
   --card-foreground: #0a0a0a;
-  --popover: #ffffff;
-  --popover-foreground: #0a0a0a;
   --border: #e5e5e5;
   --border-low: #f5f5f5;
   --input: #e5e5e5;
   --accent: #f5f5f5;
   --accent-foreground: #5e548e;
-  --cream: #f5f5f5;
   --destructive: #ef4444;
-  --destructive-foreground: #ef4444;
   --ring: #9f86c0;
-  --radius: 0.625rem;
   --secondary: #231942;
   --secondary-foreground: #ffffff;
-  --amethyst-dark: #231942;
-  --amethyst-grape: #5e548e;
-  --amethyst-smoke: #9f86c0;
-  --amethyst-lilac: #be95c4;
-  --amethyst-orchid: #e0b1cb;
   --font-sans: var(--font-inter), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
@@ -43,16 +33,12 @@
   --muted-foreground: #9f86c0;
   --card: #2d2154;
   --card-foreground: #fafafa;
-  --popover: #2d2154;
-  --popover-foreground: #fafafa;
   --border: #3d2e6b;
   --border-low: rgba(61, 46, 107, 0.5);
   --input: #3d2e6b;
   --accent: #3d2e6b;
   --accent-foreground: #fafafa;
-  --cream: #2d2154;
   --destructive: #ef4444;
-  --destructive-foreground: #ef4444;
   --ring: #9f86c0;
   --secondary: #231942;
   --secondary-foreground: #ffffff;
@@ -67,29 +53,75 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
   --color-border: var(--border);
   --color-border-low: var(--border-low);
   --color-input: var(--input);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-cream: var(--cream);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
   --color-ring: var(--ring);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
-  --color-amethyst-dark: var(--amethyst-dark);
-  --color-amethyst-grape: var(--amethyst-grape);
-  --color-amethyst-smoke: var(--amethyst-smoke);
-  --color-amethyst-lilac: var(--amethyst-lilac);
-  --color-amethyst-orchid: var(--amethyst-orchid);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Amethyst brand palette */
+@theme {
+  --color-amethyst-50:  #ccc2e8;
+  --color-amethyst-100: #07050d;
+  --color-amethyst-200: #0e0a1b;
+  --color-amethyst-300: #150f28;
+  --color-amethyst-400: #1c1435;
+  --color-amethyst-500: #231942;
+  --color-amethyst-600: #44307f;
+  --color-amethyst-700: #6549ba;
+  --color-amethyst-800: #9986d1;
+  --color-amethyst-900: #ccc2e8;
+
+  --color-grape-50:  #dddbea;
+  --color-grape-100: #13111c;
+  --color-grape-200: #252139;
+  --color-grape-300: #383255;
+  --color-grape-400: #4a4271;
+  --color-grape-500: #5e548e;
+  --color-grape-600: #796faa;
+  --color-grape-700: #9a93c0;
+  --color-grape-800: #bcb7d5;
+  --color-grape-900: #dddbea;
+
+  --color-smoke-50:  #ece7f3;
+  --color-smoke-100: #1f162b;
+  --color-smoke-200: #3e2c56;
+  --color-smoke-300: #5e4381;
+  --color-smoke-400: #7d5baa;
+  --color-smoke-500: #9f86c0;
+  --color-smoke-600: #b29ecd;
+  --color-smoke-700: #c6b6da;
+  --color-smoke-800: #d9cfe6;
+  --color-smoke-900: #ece7f3;
+
+  --color-lilac-50:  #f2eaf3;
+  --color-lilac-100: #2a192c;
+  --color-lilac-200: #543259;
+  --color-lilac-300: #7d4b85;
+  --color-lilac-400: #a36aab;
+  --color-lilac-500: #be95c4;
+  --color-lilac-600: #cbabd0;
+  --color-lilac-700: #d8c0dc;
+  --color-lilac-800: #e5d5e7;
+  --color-lilac-900: #f2eaf3;
+
+  --color-orchid-50:  #f9f0f5;
+  --color-orchid-100: #3a172a;
+  --color-orchid-200: #732e54;
+  --color-orchid-300: #ad457e;
+  --color-orchid-400: #ca79a5;
+  --color-orchid-500: #e0b1cb;
+  --color-orchid-600: #e7c2d6;
+  --color-orchid-700: #edd1e0;
+  --color-orchid-800: #f3e0eb;
+  --color-orchid-900: #f9f0f5;
 }
 
 @layer base {
@@ -100,5 +132,15 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
+  }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 }
