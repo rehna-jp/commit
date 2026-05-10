@@ -29,14 +29,14 @@ export function HabitTypeSelector({ value, onChange, disabled }: Props) {
             disabled={disabled}
             onClick={() => onChange(v)}
             className={[
-              'inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium border transition-all',
+              'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all',
               active
-                ? 'bg-grape-500 text-white border-grape-500'
-                : 'bg-orchid-50 border-orchid-500 text-amethyst-500 hover:border-grape-500',
+                ? 'bg-grape-500 text-white border-grape-500 shadow-[0_0_15px_rgba(94,84,142,0.5)]'
+                : 'bg-black/20 border-white/5 text-smoke-500 hover:text-white hover:border-grape-500/50 hover:bg-white/5',
               disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
             ].join(' ')}
           >
-            <Icon size={12} className={active ? 'text-white' : 'text-grape-500'} />
+            <Icon size={14} className={active ? 'text-white' : 'text-smoke-500'} />
             {label}
           </button>
         );
@@ -50,8 +50,8 @@ export function HabitChip({ habitType }: { habitType: HabitType }) {
   if (!opt) return null;
   const { label, Icon } = opt;
   return (
-    <span className="inline-flex items-center gap-1.5 bg-orchid-50 border border-orchid-500 text-amethyst-500 rounded-full px-3.5 py-1.5 text-xs font-medium">
-      <Icon size={12} className="text-grape-500" />
+    <span className="inline-flex items-center gap-1.5 bg-orchid-500/10 border border-orchid-500/30 text-orchid-400 rounded-full px-3.5 py-1.5 text-xs font-bold tracking-wide uppercase shadow-[0_0_10px_rgba(202,121,165,0.2)]">
+      <Icon size={12} className="text-orchid-400" />
       {label}
     </span>
   );

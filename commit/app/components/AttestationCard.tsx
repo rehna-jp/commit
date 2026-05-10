@@ -20,23 +20,23 @@ function formatCountdown(seconds: number): string {
 
 const STATE_STYLES: Record<AttestationState, { pill: string; dot: string; label: string }> = {
   [AttestationState.Pending]: {
-    pill: 'bg-amber-100 text-amber-800',
-    dot: 'bg-amber-500',
+    pill: 'bg-amber-900/30 text-amber-400 border border-amber-500/30',
+    dot: 'bg-amber-400 shadow-[0_0_8px_#fbbf24]',
     label: 'Pending',
   },
   [AttestationState.Disputed]: {
-    pill: 'bg-blue-100 text-blue-800',
-    dot: 'bg-blue-500',
+    pill: 'bg-blue-900/30 text-blue-400 border border-blue-500/30',
+    dot: 'bg-blue-400 shadow-[0_0_8px_#60a5fa]',
     label: 'Disputed',
   },
   [AttestationState.Finalized]: {
-    pill: 'bg-green-100 text-green-800',
-    dot: 'bg-green-500',
+    pill: 'bg-green-900/30 text-green-400 border border-green-500/30',
+    dot: 'bg-green-400 shadow-[0_0_8px_#4ade80]',
     label: 'Finalized',
   },
   [AttestationState.Overturned]: {
-    pill: 'bg-zinc-100 text-zinc-600',
-    dot: 'bg-zinc-400',
+    pill: 'bg-red-900/30 text-red-400 border border-red-500/30',
+    dot: 'bg-red-400 shadow-[0_0_8px_#f87171]',
     label: 'Overturned',
   },
 };
@@ -74,55 +74,55 @@ export function AttestationCard({ attestation, streakId, viewerAddress, particip
           : Clock;
 
   return (
-    <div className="bg-white dark:bg-grape-200 border border-zinc-200 dark:border-grape-300 rounded-xl p-3 sm:p-4">
+    <div className="bg-black/20 border border-white/5 rounded-xl p-3 sm:p-4 hover:bg-black/30 transition-colors">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2 sm:gap-3 min-w-0">
           <StateIcon
             size={16}
             className={`shrink-0 mt-0.5 ${
               attestation.state === AttestationState.Finalized
-                ? 'text-green-500'
+                ? 'text-green-400'
                 : attestation.state === AttestationState.Disputed
-                  ? 'text-blue-500'
+                  ? 'text-blue-400'
                   : attestation.state === AttestationState.Overturned
-                    ? 'text-zinc-400'
-                    : 'text-amber-500'
+                    ? 'text-red-400'
+                    : 'text-amber-400'
             }`}
           />
           <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-900 dark:text-white">
+            <p className="text-sm font-bold text-white">
               Day {attestation.dayIndex + 1}
             </p>
             {attestation.state === AttestationState.Pending && secondsLeft > 0 && (
-              <p className="text-xs text-zinc-500 dark:text-smoke-500 mt-0.5">
-                {formatCountdown(secondsLeft)} left
+              <p className="text-xs font-mono text-amber-400 mt-1">
+                {formatCountdown(secondsLeft)} window
               </p>
             )}
             {attestation.state === AttestationState.Disputed && attestation.disputer && (
-              <p className="text-xs text-zinc-500 dark:text-smoke-500 mt-0.5 truncate">
+              <p className="text-xs font-mono text-blue-400 mt-1 truncate">
                 Disputed by {attestation.disputer.slice(0, 4)}…{attestation.disputer.slice(-4)}
               </p>
             )}
             {attestation.state === AttestationState.Overturned && (
-              <p className="text-xs text-zinc-500 dark:text-smoke-500 mt-0.5">
+              <p className="text-xs font-medium text-red-400 mt-1">
                 Overturned — stake slashed
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${style.pill}`}>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase ${style.pill}`}>
             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
             {style.label}
           </span>
           {(canDispute || attestation.state === AttestationState.Disputed) && (
             <Link
               href={`/streak/${streakId}/dispute/${attestation.pubkey}`}
-              className={`text-xs rounded-lg px-2.5 py-1 transition-colors ${
+              className={`text-xs font-bold rounded-lg px-3 py-1.5 transition-colors ${
                 attestation.state === AttestationState.Disputed
-                  ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                  : 'border border-zinc-300 dark:border-grape-400 text-zinc-600 dark:text-smoke-600 hover:border-grape-500 hover:text-grape-500'
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30 hover:bg-blue-500/30'
+                  : 'bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 shadow-[0_0_10px_rgba(248,113,113,0.2)]'
               }`}
             >
               {attestation.state === AttestationState.Disputed ? 'Resolve' : 'Dispute'}

@@ -50,32 +50,32 @@ export function GitHubVerifier({ streakPubkey, participantPubkey, dayIndex, onVe
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 mb-1">
-        <GitBranch size={16} className="text-zinc-500" />
-        <p className="text-sm font-medium text-zinc-700 dark:text-smoke-700">GitHub Auto-Verify</p>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-2">
+        <GitBranch size={16} className="text-orchid-400" />
+        <p className="text-sm font-bold text-white uppercase tracking-widest">GitHub Auto-Verify</p>
       </div>
-      <p className="text-xs text-zinc-500 dark:text-smoke-600">
-        We check for qualifying commits, PRs, or repo activity in the last 24 hours.
+      <p className="text-sm text-smoke-500 leading-relaxed">
+        We check the network for qualifying commits, PRs, or repo activity in the last 24 hours.
       </p>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <input
           type="text"
-          placeholder="GitHub username"
+          placeholder="Enter GitHub username"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           disabled={status !== 'idle'}
-          className="flex-1 bg-white dark:bg-grape-300 border border-zinc-200 dark:border-grape-400 rounded-lg px-3 py-2 text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:outline-none focus:border-grape-500"
+          className="flex-1 bg-black/30 border border-grape-400/30 rounded-xl px-4 py-3 text-sm text-white placeholder:text-smoke-600 focus:outline-none focus:border-orchid-500 focus:ring-1 focus:ring-orchid-500/50 transition-all"
           onKeyDown={(e) => e.key === 'Enter' && void handleVerify()}
         />
         <button
           onClick={() => void handleVerify()}
           disabled={status !== 'idle' || !username.trim()}
-          className="bg-grape-500 text-white hover:bg-grape-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+          className="bg-grape-500 text-white hover:bg-grape-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl px-6 py-3 text-sm font-bold transition-all shadow-[0_0_15px_rgba(94,84,142,0.4)]"
         >
           {status === 'verifying' ? (
-            <Loader2 size={16} className="animate-spin" />
+            <Loader2 size={18} className="animate-spin" />
           ) : (
             'Verify'
           )}
@@ -84,29 +84,29 @@ export function GitHubVerifier({ streakPubkey, participantPubkey, dayIndex, onVe
 
       {status === 'done' && result && (
         <div
-          className={`rounded-xl p-4 border ${
+          className={`rounded-xl p-5 border mt-4 ${
             result.verdict
-              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
-              : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+              ? 'bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(74,222,128,0.1)]'
+              : 'bg-red-500/10 border-red-500/30 shadow-[0_0_15px_rgba(248,113,113,0.1)]'
           }`}
         >
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             {result.verdict ? (
-              <CheckCircle size={16} className="text-green-500 shrink-0 mt-0.5" />
+              <CheckCircle size={20} className="text-green-400 shrink-0 mt-0.5" />
             ) : (
-              <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+              <XCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
             )}
             <div>
-              <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                {result.verdict ? 'Activity found' : 'No qualifying activity'}
+              <p className="text-base font-bold text-white mb-1">
+                {result.verdict ? 'Activity Confirmed' : 'No qualifying activity'}
               </p>
-              <p className="text-xs text-zinc-500 dark:text-smoke-600 mt-0.5">{result.reason}</p>
+              <p className="text-sm text-smoke-500 leading-relaxed">{result.reason}</p>
             </div>
           </div>
           {!result.verdict && (
             <button
               onClick={() => { setStatus('idle'); setResult(null); }}
-              className="mt-2 text-sm text-grape-500 hover:text-grape-600 font-medium"
+              className="mt-4 text-sm text-red-400 hover:text-red-300 font-bold tracking-wide transition-colors"
             >
               Try Again
             </button>

@@ -26,77 +26,85 @@ export function StreakCard({ streak, showCheckin, currentDay }: Props) {
     : `Starts in ${Math.ceil((streak.startTimestamp - now) / 86400)} days`;
 
   return (
-    <div className="bg-white dark:bg-grape-200 border border-zinc-200 dark:border-grape-300 rounded-xl p-5 hover:border-l-[3px] hover:border-l-grape-500 transition-all group">
-      <div className="flex items-start justify-between mb-3">
+    <div className="relative group bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_10px_40px_-10px_rgba(153,134,209,0.3)] hover:border-grape-400/40">
+      <div className="absolute inset-0 bg-gradient-to-br from-grape-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none"></div>
+      
+      <div className="relative z-10 flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            <HabitIcon size={15} className="text-grape-500 shrink-0" />
-            <h3 className="text-sm font-medium text-zinc-900 dark:text-white truncate">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="bg-grape-500/20 p-1.5 rounded-lg border border-grape-500/30">
+              <HabitIcon size={16} className="text-lilac-400 drop-shadow-[0_0_8px_rgba(190,149,196,0.6)]" />
+            </div>
+            <h3 className="text-base font-bold text-white truncate group-hover:text-lilac-400 transition-colors">
               {streak.name}
             </h3>
           </div>
           <HabitChip habitType={streak.habitType} />
         </div>
-        <div className="text-right ml-3 shrink-0">
-          <p className="font-mono text-sm font-medium text-grape-500">
-            {formatUsdc(streak.stakeAmount)} USDC
+        <div className="text-right ml-4 shrink-0">
+          <p className="font-mono text-lg font-bold bg-gradient-to-r from-white to-smoke-600 bg-clip-text text-transparent">
+            {formatUsdc(streak.stakeAmount)} <span className="text-sm">USDC</span>
           </p>
-          <p className="text-xs text-zinc-500 dark:text-smoke-500">stake</p>
+          <p className="text-xs uppercase tracking-wider font-semibold text-grape-500">Stake</p>
         </div>
       </div>
 
       {/* Progress */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs text-zinc-500 dark:text-smoke-500">{daysLabel}</span>
-          <span className="text-xs text-zinc-500 dark:text-smoke-500">{progress}%</span>
+      <div className="relative z-10 mb-5 bg-[#13111c]/60 p-3 rounded-xl border border-white/5">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-medium text-smoke-500">{daysLabel}</span>
+          <span className="text-xs font-bold text-orchid-400 drop-shadow-[0_0_5px_rgba(202,121,165,0.5)]">{progress}%</span>
         </div>
-        <div className="h-1.5 bg-grape-900 dark:bg-grape-300 rounded-full overflow-hidden">
+        <div className="h-2 bg-grape-900/50 rounded-full overflow-hidden shadow-inner">
           <div
-            className="h-full bg-grape-500 rounded-full transition-all"
+            className="h-full bg-gradient-to-r from-grape-500 to-orchid-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(202,121,165,0.8)] relative"
             style={{ width: `${progress}%` }}
-          />
+          >
+            <div className="absolute top-0 right-0 bottom-0 w-4 bg-white/30 blur-[2px]"></div>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="flex items-center gap-4 mb-4">
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-smoke-600">
-          <Users size={12} />
-          <span>{streak.activeCount}/{streak.maxParticipants} active</span>
+      <div className="relative z-10 grid grid-cols-3 gap-2 mb-5">
+        <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5">
+          <Users size={14} className="text-smoke-600 mb-1" />
+          <span className="text-xs font-medium text-smoke-500"><span className="text-white">{streak.activeCount}</span>/{streak.maxParticipants}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-smoke-600">
-          <TrendingUp size={12} />
-          <span className="font-mono">{formatUsdc(streak.totalPool)} USDC pool</span>
+        <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5">
+          <TrendingUp size={14} className="text-smoke-600 mb-1" />
+          <span className="text-xs font-medium text-smoke-500"><span className="text-white font-mono">{formatUsdc(streak.totalPool)}</span> USDC</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-smoke-600">
-          <Clock size={12} />
-          <span>{streak.penaltyPercent}% slash</span>
+        <div className="flex flex-col items-center justify-center p-2 rounded-lg bg-white/5 border border-white/5">
+          <Clock size={14} className="text-red-400/70 mb-1" />
+          <span className="text-xs font-medium text-smoke-500"><span className="text-white">{streak.penaltyPercent}%</span> slash</span>
         </div>
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="relative z-10 flex items-center gap-3">
         <Link
           href={`/streak/${streak.pubkey}`}
-          className="flex-1 text-center border border-zinc-300 dark:border-grape-400 text-zinc-700 dark:text-smoke-700 hover:bg-zinc-50 dark:hover:bg-grape-300 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+          className="flex-1 text-center border border-grape-400/40 text-smoke-600 hover:text-white hover:bg-white/10 rounded-lg px-4 py-2.5 text-sm font-medium transition-all active:scale-95"
         >
-          View
+          View Details
         </Link>
         {showCheckin && started && (
           <Link
             href={`/streak/${streak.pubkey}/checkin`}
-            className="flex-1 text-center bg-grape-500 text-white hover:bg-grape-600 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+            className="group/btn relative overflow-hidden flex-1 text-center bg-grape-500 text-white rounded-lg px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-[0_0_15px_rgba(94,84,142,0.6)] active:scale-95"
           >
-            Check In {currentDay ? `(Day ${currentDay})` : ''}
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover/btn:opacity-100 group-hover/btn:animate-[shimmer_2s_infinite]"></div>
+            <span className="relative">Check In {currentDay ? `(Day ${currentDay})` : ''}</span>
           </Link>
         )}
         {!started && (
           <Link
             href={`/streak/${streak.pubkey}`}
-            className="flex-1 text-center bg-orchid-50 text-grape-500 hover:bg-orchid-800 border border-orchid-500 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+            className="group/btn relative overflow-hidden flex-1 text-center bg-orchid-500/10 text-orchid-400 border border-orchid-500/30 hover:border-orchid-500/60 hover:bg-orchid-500/20 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-[0_0_15px_rgba(202,121,165,0.4)] active:scale-95"
           >
-            Join Streak
+             <div className="absolute inset-0 bg-gradient-to-r from-orchid-400/0 via-orchid-400/20 to-orchid-400/0 opacity-0 transition-opacity duration-500 group-hover/btn:opacity-100 group-hover/btn:animate-[shimmer_2s_infinite]"></div>
+            <span className="relative">Join Streak</span>
           </Link>
         )}
       </div>

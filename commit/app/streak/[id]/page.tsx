@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { PublicKey } from '@solana/web3.js';
-import { Loader2, Trophy } from 'lucide-react';
+import { Loader2, Trophy, Clock, Users, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '../../components/Navbar';
 import { HabitChip } from '../../components/HabitTypeSelector';
@@ -60,10 +60,14 @@ export default function StreakDetailPage() {
 
   if (streakLoading) {
     return (
-      <div className="min-h-screen bg-amethyst-500">
+      <div className="relative min-h-screen bg-[#07050d] text-white overflow-hidden">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[20%] left-[50%] w-[40vw] h-[40vw] -translate-x-1/2 rounded-full bg-grape-600/20 blur-[150px]" />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
+        </div>
         <Navbar />
-        <div className="flex items-center justify-center pt-32">
-          <Loader2 size={24} className="animate-spin text-smoke-500" />
+        <div className="relative z-10 flex items-center justify-center pt-32">
+          <Loader2 size={32} className="animate-spin text-orchid-500 drop-shadow-[0_0_15px_rgba(202,121,165,0.8)]" />
         </div>
       </div>
     );
@@ -71,85 +75,136 @@ export default function StreakDetailPage() {
 
   if (streakError || !streak) {
     return (
-      <div className="min-h-screen bg-amethyst-500">
+      <div className="relative min-h-screen bg-[#07050d] text-white overflow-hidden">
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute top-[30%] left-[50%] w-[50vw] h-[50vw] -translate-x-1/2 rounded-full bg-grape-600/10 blur-[150px]" />
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
+        </div>
         <Navbar />
-        <div className="flex flex-col items-center justify-center pt-32 px-6 text-center">
-          <p className="text-smoke-500 mb-4">{streakError ?? 'Streak not found'}</p>
-          <Link href="/dashboard" className="text-grape-500 hover:text-grape-600 text-sm font-medium">
-            Back to dashboard
-          </Link>
+        <div className="relative z-10 flex flex-col items-center justify-center pt-32 px-6 text-center">
+          <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-10 max-w-md shadow-2xl">
+            <p className="text-lg text-smoke-500 mb-6">{streakError ?? 'Streak not found on network.'}</p>
+            <Link href="/dashboard" className="text-orchid-400 hover:text-orchid-300 text-base font-bold transition-colors">
+              Return to Dashboard
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-amethyst-500">
+    <div className="relative min-h-screen bg-[#07050d] text-white selection:bg-grape-500/30 overflow-hidden pb-20">
+      {/* Immersive Glowing Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none fixed">
+        <div className="absolute top-[-10%] right-[-10%] w-[40vw] h-[40vw] rounded-full bg-lilac-900/10 blur-[150px]" />
+        <div className="absolute bottom-[20%] left-[-10%] w-[40vw] h-[40vw] rounded-full bg-grape-600/10 blur-[150px]" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
+      </div>
+
       <Navbar />
-      <div className="mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8">
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <HabitChip habitType={streak.habitType} />
-            <span className="text-xs text-smoke-600 border border-grape-400 rounded-full px-2.5 py-1">
-              {streak.durationDays} days
-            </span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-medium text-white break-words">{streak.name}</h1>
-
-          <div className="flex gap-3 sm:gap-4 text-sm mb-4 mt-2 overflow-x-auto pb-1">
-            <span className="font-mono font-medium text-grape-500 shrink-0">{formatUsdc(streak.stakeAmount)} USDC</span>
-            <span className="text-smoke-500 shrink-0">{streak.penaltyPercent}% slash</span>
-            <span className="text-smoke-500 shrink-0">{streak.activeCount}/{streak.maxParticipants} active</span>
-            <span className="font-mono text-grape-500 shrink-0">{formatUsdc(streak.totalPool)} pool</span>
+      
+      <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14">
+        {/* Header Section */}
+        <div className="mb-10 bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <Trophy size={160} />
           </div>
 
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-xs text-smoke-600 mb-1">
-              <span>{started ? `Day ${daysPassed} of ${streak.durationDays}` : 'Not started'}</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="h-1.5 bg-grape-300 rounded-full overflow-hidden">
-              <div className="h-full bg-grape-500 rounded-full" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 sm:gap-3">
-            {canJoin && !authenticated && (
-              <Link href="/dashboard" className="bg-grape-500 text-white hover:bg-grape-600 rounded-lg px-4 py-2 text-sm font-medium">
-                Connect to Join
-              </Link>
-            )}
-            {canCheckin && (
-              <Link href={`/streak/${id}/checkin`} className="bg-grape-500 text-white hover:bg-grape-600 rounded-lg px-4 py-2 text-sm font-medium">
-                Check In (Day {daysPassed})
-              </Link>
-            )}
-            {canClaim && (
-              <button onClick={() => void handleClaim()} disabled={sending}
-                className="flex items-center gap-2 bg-orchid-50 text-grape-500 border border-orchid-500 hover:bg-orchid-800 disabled:opacity-70 rounded-lg px-4 py-2 text-sm font-medium">
-                {sending ? <Loader2 size={14} className="animate-spin" /> : <Trophy size={14} />}
-                Claim Reward & Mint NFT
-              </button>
-            )}
-            {userParticipant?.hasClaimed && (
-              <span className="flex items-center gap-1.5 text-sm text-green-400">
-                <Trophy size={14} /> Completed &amp; claimed
+          <div className="relative z-10">
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <HabitChip habitType={streak.habitType} />
+              <span className="text-xs font-bold uppercase tracking-widest text-orchid-400 border border-orchid-400/30 bg-orchid-500/10 rounded-full px-3 py-1.5">
+                {streak.durationDays} Days Protocol
               </span>
-            )}
+            </div>
+            
+            <h1 className="text-4xl sm:text-5xl font-black text-white break-words mb-8 tracking-tight">
+              {streak.name}
+            </h1>
+
+            {/* High-Tech Stats Panel */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="bg-black/20 border border-grape-400/20 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-xs font-bold text-smoke-600 uppercase tracking-widest mb-1 flex items-center gap-1"><TrendingUp size={12}/> Entry Stake</span>
+                <span className="text-2xl font-black text-white font-mono">{formatUsdc(streak.stakeAmount)}</span>
+              </div>
+              <div className="bg-black/20 border border-grape-400/20 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-xs font-bold text-smoke-600 uppercase tracking-widest mb-1 flex items-center gap-1"><Clock size={12}/> Penalty</span>
+                <span className="text-2xl font-black text-red-400 font-mono">{streak.penaltyPercent}%</span>
+              </div>
+              <div className="bg-black/20 border border-grape-400/20 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-xs font-bold text-smoke-600 uppercase tracking-widest mb-1 flex items-center gap-1"><Users size={12}/> Active</span>
+                <span className="text-2xl font-black text-white font-mono">{streak.activeCount}<span className="text-sm text-smoke-600">/{streak.maxParticipants}</span></span>
+              </div>
+              <div className="bg-black/20 border border-grape-400/20 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                <span className="text-xs font-bold text-smoke-600 uppercase tracking-widest mb-1 flex items-center gap-1"><Trophy size={12}/> Total Pool</span>
+                <span className="text-2xl font-black text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] font-mono">{formatUsdc(streak.totalPool)}</span>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="mb-8 bg-[#13111c]/60 p-4 rounded-2xl border border-white/5">
+              <div className="flex items-center justify-between text-sm font-bold mb-3">
+                <span className="text-smoke-400 uppercase tracking-widest">{started ? `Protocol Day ${daysPassed} of ${streak.durationDays}` : 'Protocol Pending Start'}</span>
+                <span className="text-orchid-400 drop-shadow-[0_0_10px_rgba(202,121,165,0.8)]">{progress}%</span>
+              </div>
+              <div className="h-3 bg-grape-900/50 rounded-full overflow-hidden shadow-inner">
+                <div className="h-full bg-gradient-to-r from-grape-500 to-orchid-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(202,121,165,0.8)] relative" style={{ width: `${progress}%` }}>
+                  <div className="absolute top-0 right-0 bottom-0 w-8 bg-white/30 blur-[4px]"></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap gap-4">
+              {canJoin && !authenticated && (
+                <Link href="/dashboard" className="bg-grape-500 text-white hover:bg-grape-600 rounded-xl px-6 py-3 text-base font-bold shadow-lg transition-transform hover:scale-105 active:scale-95">
+                  Connect Wallet to Join
+                </Link>
+              )}
+              {canCheckin && (
+                <Link href={`/streak/${id}/checkin`} className="group relative overflow-hidden bg-grape-500 text-white rounded-xl px-8 py-3.5 text-base font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(94,84,142,0.6)]">
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
+                  <span className="relative">Submit Day {daysPassed} Proof</span>
+                </Link>
+              )}
+              {canClaim && (
+                <button onClick={() => void handleClaim()} disabled={sending}
+                  className="group relative overflow-hidden flex items-center gap-2 bg-orchid-500/10 border border-orchid-500 text-orchid-400 hover:bg-orchid-500/20 disabled:opacity-70 rounded-xl px-8 py-3.5 text-base font-bold transition-all hover:shadow-[0_0_20px_rgba(202,121,165,0.4)] active:scale-95">
+                  <div className="absolute inset-0 bg-gradient-to-r from-orchid-400/0 via-orchid-400/20 to-orchid-400/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
+                  {sending ? <Loader2 size={18} className="animate-spin relative" /> : <Trophy size={18} className="relative" />}
+                  <span className="relative">Claim Reward & Mint NFT</span>
+                </button>
+              )}
+              {userParticipant?.hasClaimed && (
+                <span className="flex items-center gap-2 text-base font-bold text-green-400 bg-green-400/10 border border-green-400/30 px-6 py-3 rounded-xl">
+                  <Trophy size={18} /> Protocol Completed
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="lg:col-span-2 space-y-8">
             {canJoin && authenticated && (
-              <StakeWidget streak={streak} userAddress={solanaWallet?.address} onJoined={() => {}} />
+              <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 shadow-xl">
+                 <StakeWidget streak={streak} userAddress={solanaWallet?.address} onJoined={() => {}} />
+              </div>
             )}
-            <div>
-              <h2 className="text-base sm:text-lg font-medium text-white mb-3">Recent Check-ins</h2>
+            
+            <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 sm:p-8 shadow-xl">
+              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                Recent Network Attestations
+                <span className="flex size-2 animate-pulse rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]"></span>
+              </h2>
               {attestations.length === 0 ? (
-                <div className="text-center py-8 text-smoke-600 text-sm">No check-ins yet.</div>
+                <div className="text-center py-10 bg-black/20 rounded-2xl border border-white/5">
+                  <p className="text-smoke-500 font-medium">No check-ins submitted to the network yet.</p>
+                </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {attestations.slice(0, 10).map((a) => (
                     <AttestationCard key={a.pubkey} attestation={a} streakId={id}
                       viewerAddress={solanaWallet?.address} participantAddress={userParticipant?.pubkey} />
@@ -157,26 +212,38 @@ export default function StreakDetailPage() {
                 </div>
               )}
             </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-medium text-white mb-3">Leaderboard</h2>
-              <div className="bg-white dark:bg-grape-200 border border-zinc-200 dark:border-grape-300 rounded-xl overflow-hidden">
+            
+            <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 sm:p-8 shadow-xl">
+              <h2 className="text-xl font-bold text-white mb-6">Protocol Leaderboard</h2>
+              <div className="bg-black/20 border border-grape-400/20 rounded-2xl overflow-hidden">
                 <Leaderboard participants={participants} />
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <RewardPool streak={streak} />
+          <div className="space-y-6">
+            <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 shadow-xl">
+              <RewardPool streak={streak} />
+            </div>
+
             {streak.habitPrompt && (
-              <div className="bg-white dark:bg-grape-200 border border-zinc-200 dark:border-grape-300 rounded-xl p-4">
-                <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-2">Habit Description</h3>
-                <p className="text-sm text-zinc-500 dark:text-smoke-600">{streak.habitPrompt}</p>
+              <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-2 h-full bg-gradient-to-b from-grape-500 to-orchid-500"></div>
+                <h3 className="text-sm font-bold text-smoke-500 uppercase tracking-widest mb-3">Verifiable Condition</h3>
+                <p className="text-base text-white leading-relaxed">{streak.habitPrompt}</p>
               </div>
             )}
-            <div className="bg-white dark:bg-grape-200 border border-zinc-200 dark:border-grape-300 rounded-xl p-4 text-xs font-mono text-smoke-600 space-y-1 overflow-hidden">
-              <p className="text-smoke-500 font-sans font-medium text-sm mb-1.5">Contract</p>
-              <p className="truncate">Streak: {streak.pubkey}</p>
-              <p className="truncate">Creator: {streak.creator}</p>
+            
+            <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 shadow-xl font-mono text-xs text-smoke-500 space-y-3 overflow-hidden">
+              <p className="text-white font-sans font-bold text-sm tracking-wide mb-2 uppercase">Contract Addresses</p>
+              <div>
+                <p className="text-grape-400 mb-0.5 uppercase text-[10px] tracking-widest">Protocol ID</p>
+                <p className="truncate bg-black/20 p-2 rounded-lg border border-white/5">{streak.pubkey}</p>
+              </div>
+              <div>
+                <p className="text-grape-400 mb-0.5 uppercase text-[10px] tracking-widest">Creator</p>
+                <p className="truncate bg-black/20 p-2 rounded-lg border border-white/5">{streak.creator}</p>
+              </div>
             </div>
           </div>
         </div>

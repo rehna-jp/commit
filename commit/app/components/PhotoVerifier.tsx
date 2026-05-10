@@ -89,28 +89,28 @@ export function PhotoVerifier({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Upload area */}
       <div
         onClick={() => inputRef.current?.click()}
-        className="border-2 border-dashed border-zinc-200 dark:border-grape-400 rounded-xl p-6 text-center cursor-pointer hover:border-grape-500 transition-colors"
+        className="border-2 border-dashed border-grape-400/30 bg-black/30 rounded-2xl p-8 text-center cursor-pointer hover:border-orchid-500/50 hover:bg-orchid-500/10 transition-all group"
       >
         {imagePreview ? (
           <img
             src={imagePreview}
             alt="Check-in preview"
-            className="mx-auto max-h-48 rounded-lg object-contain"
+            className="mx-auto max-h-56 rounded-xl object-contain shadow-lg border border-white/10 group-hover:scale-[1.02] transition-transform"
           />
         ) : (
           <>
-            <div className="flex justify-center gap-3 mb-2 text-zinc-400">
-              <Camera size={24} />
-              <Upload size={24} />
+            <div className="flex justify-center gap-4 mb-4 text-smoke-600 group-hover:text-orchid-400 transition-colors">
+              <Camera size={32} />
+              <Upload size={32} />
             </div>
-            <p className="text-sm text-zinc-500 dark:text-smoke-600">
+            <p className="text-base font-bold text-white mb-1">
               Tap to take a photo or upload
             </p>
-            <p className="text-xs text-zinc-400 dark:text-smoke-500 mt-1">JPEG or PNG, max 4MB</p>
+            <p className="text-xs font-mono text-smoke-500 uppercase tracking-widest mt-2">JPEG or PNG, max 4MB</p>
           </>
         )}
       </div>
@@ -127,38 +127,39 @@ export function PhotoVerifier({
       {imageBase64 && status === 'idle' && (
         <button
           onClick={handleVerifyClick}
-          className="w-full bg-grape-500 text-white hover:bg-grape-600 rounded-lg py-2.5 text-sm font-medium transition-colors"
+          className="group relative overflow-hidden w-full bg-grape-500 text-white hover:scale-[1.02] rounded-xl py-3.5 text-base font-bold transition-all shadow-[0_0_20px_rgba(94,84,142,0.5)] mt-2"
         >
-          {x402Enabled ? 'Pay & Verify (0.001 USDC)' : 'Verify Check-In'}
+          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
+          <span className="relative">{x402Enabled ? 'Pay & Verify (0.001 USDC)' : 'Submit Attestation Proof'}</span>
         </button>
       )}
 
       {status === 'verifying' && (
-        <div className="flex items-center justify-center gap-2 py-3 text-sm text-zinc-500 dark:text-smoke-600">
-          <Loader2 size={16} className="animate-spin" />
-          AI is reviewing your check-in…
+        <div className="flex items-center justify-center gap-3 py-4 text-sm font-bold text-orchid-400 bg-orchid-500/10 border border-orchid-500/20 rounded-xl mt-2">
+          <Loader2 size={18} className="animate-spin" />
+          AI Oracle is analyzing your proof…
         </div>
       )}
 
       {status === 'done' && result && (
         <div
-          className={`rounded-xl p-4 border ${
+          className={`rounded-xl p-5 border mt-2 ${
             result.verdict
-              ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
-              : 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800'
+              ? 'bg-green-500/10 border-green-500/30 shadow-[0_0_15px_rgba(74,222,128,0.1)]'
+              : 'bg-red-500/10 border-red-500/30 shadow-[0_0_15px_rgba(248,113,113,0.1)]'
           }`}
         >
-          <div className="flex items-start gap-2">
+          <div className="flex items-start gap-3">
             {result.verdict ? (
-              <CheckCircle size={18} className="text-green-500 shrink-0 mt-0.5" />
+              <CheckCircle size={20} className="text-green-400 shrink-0 mt-0.5" />
             ) : (
-              <XCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+              <XCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
             )}
             <div>
-              <p className="text-sm font-medium text-zinc-900 dark:text-white">
-                {result.verdict ? 'Approved' : 'Rejected'}
+              <p className="text-base font-bold text-white mb-1">
+                {result.verdict ? 'Proof Verified' : 'Proof Rejected'}
               </p>
-              <p className="text-xs text-zinc-500 dark:text-smoke-600 mt-0.5">{result.reason}</p>
+              <p className="text-sm text-smoke-500 leading-relaxed">{result.reason}</p>
             </div>
           </div>
           {!result.verdict && (
@@ -166,8 +167,10 @@ export function PhotoVerifier({
               onClick={() => {
                 setStatus('idle');
                 setResult(null);
+                setImageBase64(null);
+                setImagePreview(null);
               }}
-              className="mt-3 text-sm text-grape-500 hover:text-grape-600 font-medium"
+              className="mt-4 text-sm text-red-400 hover:text-red-300 font-bold tracking-wide transition-colors"
             >
               Try Again
             </button>
