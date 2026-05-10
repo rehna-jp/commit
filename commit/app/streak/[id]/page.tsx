@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallet } from '@/app/lib/wallet-context';
 import { PublicKey } from '@solana/web3.js';
 import { Loader2, Trophy, Clock, Users, TrendingUp } from 'lucide-react';
 import { toast } from 'sonner';
@@ -12,7 +12,6 @@ import { Leaderboard } from '../../components/Leaderboard';
 import { RewardPool } from '../../components/RewardPool';
 import { AttestationCard } from '../../components/AttestationCard';
 import { StakeWidget } from '../../components/StakeWidget';
-import { findSolanaWallet } from '../../lib/privy-utils';
 import { useStreak, useParticipant, useStreakParticipants, useStreakAttestations } from '../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../lib/use-solana-tx';
 import { buildClaimRewardIxs } from '../../lib/solana';
@@ -20,12 +19,11 @@ import { formatUsdc } from '../../lib/constants';
 
 export default function StreakDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { authenticated } = usePrivy();
-  const { wallets } = useWallets();
-  const solanaWallet = findSolanaWallet(wallets);
+  const { connected, publicKey } = useWallet();
+  const address = publicKey?.toBase58() ?? null;
 
   const { streak, loading: streakLoading, error: streakError } = useStreak(id ?? null);
-  const { participant: userParticipant } = useParticipant(id ?? null, solanaWallet?.address ?? null);
+  const { participant: userParticipant } = useParticipant(id ?? null, address);
   const { participants } = useStreakParticipants(id ?? null);
   const { attestations } = useStreakAttestations(id ?? null);
   const { sendTransaction, sending } = useSolanaTransaction();
@@ -42,10 +40,10 @@ export default function StreakDetailPage() {
     daysPassed >= (streak?.durationDays ?? 999);
 
   async function handleClaim() {
-    if (!solanaWallet?.address || !id) return;
+    if (!publicKey || !id) return;
     try {
       const { ixs, completionMint } = await buildClaimRewardIxs(
-        new PublicKey(solanaWallet.address),
+        publicKey,
         new PublicKey(id)
       );
       await sendTransaction(ixs, {
@@ -138,8 +136,8 @@ export default function StreakDetailPage() {
                 <span className="text-2xl font-black text-white font-mono">{streak.activeCount}<span className="text-sm text-smoke-600">/{streak.maxParticipants}</span></span>
               </div>
               <div className="bg-black/20 border border-grape-400/20 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                <span className="text-xs font-bold text-smoke-600 uppercase tracking-widest mb-1 flex items-center gap-1"><Trophy size={12}/> Total Pool</span>
-                <span className="text-2xl font-black text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] font-mono">{formatUsdc(streak.totalPool)}</span>
+                <span className="text-xs font-bold text-smoke-600 uppercase tracking-widest mb-1 flex items-center gap-1"><Trophy size={12}/> Total Staked</span>
+                <span className="text-2xl font-black text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)] font-mono">{formatUsdc(streak.participantCount * streak.stakeAmount)}</span>
               </div>
             </div>
 
@@ -158,7 +156,7 @@ export default function StreakDetailPage() {
 
             {/* Actions */}
             <div className="flex flex-wrap gap-4">
-              {canJoin && !authenticated && (
+              {canJoin && !connected && (
                 <Link href="/dashboard" className="bg-grape-500 text-white hover:bg-grape-600 rounded-xl px-6 py-3 text-base font-bold shadow-lg transition-transform hover:scale-105 active:scale-95">
                   Connect Wallet to Join
                 </Link>
@@ -188,9 +186,9 @@ export default function StreakDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
           <div className="lg:col-span-2 space-y-8">
-            {canJoin && authenticated && (
+            {canJoin && connected && (
               <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 shadow-xl">
-                 <StakeWidget streak={streak} userAddress={solanaWallet?.address} onJoined={() => {}} />
+                 <StakeWidget streak={streak} userAddress={address ?? undefined} onJoined={() => {}} />
               </div>
             )}
             
@@ -207,7 +205,7 @@ export default function StreakDetailPage() {
                 <div className="space-y-4">
                   {attestations.slice(0, 10).map((a) => (
                     <AttestationCard key={a.pubkey} attestation={a} streakId={id}
-                      viewerAddress={solanaWallet?.address} participantAddress={userParticipant?.pubkey} />
+                      viewerAddress={address ?? undefined} participantAddress={userParticipant?.pubkey} />
                   ))}
                 </div>
               )}

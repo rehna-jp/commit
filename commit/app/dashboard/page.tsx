@@ -1,7 +1,6 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { findSolanaWallet } from '@/app/lib/privy-utils';
+import { useWallet } from '@/app/lib/wallet-context';
 import Link from 'next/link';
 import { Plus, Loader2 } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
@@ -9,20 +8,17 @@ import { StreakCard } from '../components/StreakCard';
 import { useAllStreaks, useUserStreaks } from '../lib/use-chain-data';
 
 export default function DashboardPage() {
-  const { authenticated, login, ready } = usePrivy();
-  const { wallets } = useWallets();
-  const solanaWallet = findSolanaWallet(wallets);
+  const { connected, connecting, publicKey, connect } = useWallet();
+  const address = publicKey?.toBase58() ?? null;
 
   const { streaks: allStreaks, loading: allLoading } = useAllStreaks();
-  const { streaks: myStreaks, participants, loading: myLoading } = useUserStreaks(
-    solanaWallet?.address ?? null
-  );
+  const { streaks: myStreaks, participants, loading: myLoading } = useUserStreaks(address);
 
   const myStreakKeys = new Set(myStreaks.map((s) => s.pubkey));
   const browseStreaks = allStreaks.filter((s) => !myStreakKeys.has(s.pubkey));
   const now = Date.now() / 1000;
 
-  if (!ready) {
+  if (connecting) {
     return (
       <div className="relative min-h-screen bg-[#07050d] text-white overflow-hidden">
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -37,7 +33,7 @@ export default function DashboardPage() {
     );
   }
 
-  if (!authenticated) {
+  if (!connected) {
     return (
       <div className="relative min-h-screen bg-[#07050d] text-white overflow-hidden">
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -52,7 +48,7 @@ export default function DashboardPage() {
               Connect your wallet to view your active streaks, check in daily, and claim your rewards.
             </p>
             <button
-              onClick={() => login()}
+              onClick={() => void connect()}
               className="group relative overflow-hidden w-full bg-grape-500 text-white rounded-xl px-6 py-4 text-base font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(94,84,142,0.5)]"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
@@ -83,9 +79,9 @@ export default function DashboardPage() {
               Dashboard
               <span className="flex size-2.5 animate-pulse rounded-full bg-green-400 shadow-[0_0_10px_#4ade80]"></span>
             </h1>
-            {solanaWallet?.address && (
+            {address && (
               <p className="font-mono text-sm text-smoke-500 mt-2 bg-black/20 inline-block px-3 py-1 rounded-md border border-white/5">
-                {solanaWallet.address.slice(0, 8)}...{solanaWallet.address.slice(-6)}
+                {address.slice(0, 8)}...{address.slice(-6)}
               </p>
             )}
           </div>

@@ -1,10 +1,10 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Lock, Camera, ShieldCheck, Trophy, ArrowRight, TrendingUp } from 'lucide-react';
+import { Lock, Camera, ShieldCheck, Trophy, ArrowRight } from 'lucide-react';
 import { Navbar } from './components/Navbar';
-import { StreakCard } from './components/StreakCard';
+import { LiveStreaks } from './components/LiveStreaks';
+import { HeroStats } from './components/HeroStats';
 import { HabitChip } from './components/HabitTypeSelector';
-import { MOCK_STREAKS } from './lib/mock-data';
 import { HabitType } from './lib/types';
 
 const STEPS = [
@@ -17,8 +17,6 @@ const STEPS = [
 const ALL_HABITS = [HabitType.Code, HabitType.Read, HabitType.Write, HabitType.Design, HabitType.Gym];
 
 export default function LandingPage() {
-  const showcase = MOCK_STREAKS.slice(0, 3);
-
   return (
     <div className="relative min-h-screen bg-[#07050d] text-white selection:bg-grape-500/30 overflow-hidden">
       {/* Immersive Glowing Background */}
@@ -87,19 +85,7 @@ export default function LandingPage() {
             </Link>
           </div>
 
-          {/* Floating Aesthetic Stats (Inspired by User Image) */}
-          <div className="mt-24 w-full max-w-4xl mx-auto grid grid-cols-2 gap-4">
-            <div className="relative rounded-2xl border border-grape-400/20 bg-white/5 p-6 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col items-center">
-              <div className="absolute top-0 right-0 p-4 opacity-20"><TrendingUp size={48} /></div>
-              <p className="text-xs uppercase tracking-widest text-smoke-600 font-semibold mb-2">Protocol Health</p>
-              <p className="text-4xl font-black text-green-400 drop-shadow-[0_0_15px_rgba(74,222,128,0.5)]">98.7%</p>
-            </div>
-            <div className="relative rounded-2xl border border-grape-400/20 bg-white/5 p-6 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col items-center">
-              <div className="absolute top-0 left-0 p-4 opacity-20"><Lock size={48} /></div>
-              <p className="text-xs uppercase tracking-widest text-smoke-600 font-semibold mb-2">Total Staked</p>
-              <p className="text-4xl font-black bg-gradient-to-r from-orchid-400 to-lilac-400 bg-clip-text text-transparent">425.6M</p>
-            </div>
-          </div>
+          <HeroStats />
         </div>
       </section>
 
@@ -140,26 +126,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Active streaks */}
-      <section className="relative z-10 mx-auto max-w-6xl px-6 pb-24">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <h2 className="text-3xl font-bold text-white">Live Protocol Data</h2>
-            <span className="flex size-2.5 animate-pulse rounded-full bg-green-400 shadow-[0_0_10px_#4ade80]"></span>
-          </div>
-          <Link
-            href="/dashboard"
-            className="text-sm font-medium text-smoke-500 hover:text-lilac-400 transition-colors flex items-center gap-1 group"
-          >
-            Explore Network <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {showcase.map((streak) => (
-            <StreakCard key={streak.pubkey} streak={streak} />
-          ))}
-        </div>
-      </section>
+      {/* Active streaks — live on-chain */}
+      <LiveStreaks />
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-grape-400/20 bg-[#07050d] py-10">

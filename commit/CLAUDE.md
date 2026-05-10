@@ -38,9 +38,9 @@ commit/
 
 - **Contract:** Rust + Anchor, SPL Token (USDC escrow), Token-2022 (completion NFTs), native ed25519 sigverify program
 - **Frontend:** Next.js 14 App Router, TypeScript strict, Tailwind CSS
-- **Wallet:** Privy (`@privy-io/react-auth`) — single SDK for Solana + EVM wallets, embedded wallets for new users
+- **Wallet:** Native browser wallet-standard — Phantom, Solflare, Backpack (no third-party auth SDK)
 - **Cross-chain:** LI.FI SDK — stake entry from any EVM chain → Solana USDC
-- **AI:** Claude API (`claude-sonnet-4-20250514`) via Anthropic SDK
+- **AI:** MOONSHOT API 
 - **Signing:** tweetnacl for ed25519 attestation signing
 - **pHash:** sharp for image processing, DCT-based 64-bit perceptual hash
 - **GitHub:** @octokit/rest for coding habit auto-verification
@@ -117,7 +117,7 @@ IMPORTANT: These rules are non-negotiable. Getting them wrong breaks the core se
 - **pHash check happens on-chain:** `(existing ^ new).count_ones() <= 8` rejects. ~12 CU per comparison. Linear scan is fine for hackathon scale.
 - **Attestation signing:** Backend signs with ed25519 keypair. Client submits signature + message. Program reconstructs message and verifies against hardcoded VERIFIER_PUBKEY.
 - **LI.FI Solana chain ID:** `1151111081099710` — NOT Solana's internal chain ID.
-- **Privy wallet pattern:** `useSolanaWallets()` for Solana txs, `useWallets()` for EVM txs (LI.FI signing).
+- **Wallet pattern:** `useWallet()` from `app/lib/wallet-context.tsx` — connects directly to `window.phantom.solana` or any wallet-standard provider.
 - **Grape (#5e548e) contrast:** Fails WCAG AA for small text. NEVER use for body copy under 18px. Use zinc-600 (#52525B) or darker.
 
 ## Code Style
@@ -172,7 +172,7 @@ Slashed:    red    — bg #FEE2E2, text #991B1B, dot #EF4444
 ## Environment Variables
 ```
 NEXT_PUBLIC_SOLANA_RPC, NEXT_PUBLIC_PROGRAM_ID, NEXT_PUBLIC_USDC_MINT
-NEXT_PUBLIC_PRIVY_APP_ID, NEXT_PUBLIC_LIFI_INTEGRATOR=commit
+NEXT_PUBLIC_LIFI_INTEGRATOR=commit
 ANTHROPIC_API_KEY, VERIFIER_PRIVATE_KEY, NEXT_PUBLIC_VERIFIER_PUBLIC_KEY
 GITHUB_APP_TOKEN
 ```

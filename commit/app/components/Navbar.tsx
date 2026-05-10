@@ -2,23 +2,16 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallet } from '@/app/lib/wallet-context';
 import { LogOut, Wallet } from 'lucide-react';
-import { findSolanaWallet } from '@/app/lib/privy-utils';
 
 function truncate(addr: string) {
   return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 }
 
 export function Navbar() {
-  const { authenticated, login, logout, user } = usePrivy();
-  const { wallets } = useWallets();
-  const solanaWallet = findSolanaWallet(wallets);
-  const displayAddr = solanaWallet?.address
-    ? truncate(solanaWallet.address)
-    : user?.email?.address
-      ? user.email.address.split('@')[0]
-      : null;
+  const { connected, publicKey, connect, disconnect } = useWallet();
+  const displayAddr = publicKey ? truncate(publicKey.toBase58()) : null;
 
   return (
     <nav className="relative z-50 mt-6 mx-auto max-w-6xl px-4">
@@ -34,7 +27,7 @@ export function Navbar() {
         </Link>
 
         <div className="flex items-center gap-3 sm:gap-4">
-          {authenticated ? (
+          {connected ? (
             <>
               <Link
                 href="/dashboard"
@@ -57,7 +50,7 @@ export function Navbar() {
                 </span>
               )}
               <button
-                onClick={() => void logout()}
+                onClick={() => void disconnect()}
                 className="text-smoke-600 hover:text-white bg-white/5 hover:bg-white/10 p-2 rounded-lg transition-all active:scale-95 border border-transparent hover:border-white/10"
                 aria-label="Disconnect"
               >
@@ -66,7 +59,7 @@ export function Navbar() {
             </>
           ) : (
             <button
-              onClick={() => login()}
+              onClick={() => void connect()}
               className="group relative overflow-hidden flex items-center gap-2 bg-white/10 border border-grape-400/40 text-white rounded-lg px-5 py-2.5 text-sm font-semibold transition-all hover:scale-105 active:scale-95 hover:bg-grape-500 shadow-lg hover:shadow-[0_0_20px_rgba(94,84,142,0.5)]"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>

@@ -2,13 +2,12 @@
 
 import { useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallet } from '@/app/lib/wallet-context';
 import { PublicKey } from '@solana/web3.js';
 import { AlertTriangle, Clock, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '../../../../components/Navbar';
 import { DisputeButton } from '../../../../components/DisputeButton';
-import { findSolanaWallet } from '../../../../lib/privy-utils';
 import { useAttestation, useStreak, useParticipant } from '../../../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../../../lib/use-solana-tx';
 import { buildDisputeCheckinIxs, buildResolveDisputeIxs, buildFinalizeCheckinIxs } from '../../../../lib/solana';
@@ -36,9 +35,8 @@ function formatCountdown(s: number): string {
 
 export default function DisputePage() {
   const { id, attestationId } = useParams<{ id: string; attestationId: string }>();
-  const { authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
-  const solanaWallet = findSolanaWallet(wallets);
+  const { connected, publicKey, connect } = useWallet();
+  const address = publicKey?.toBase58() ?? null;
 
   const [now, setNow] = useState(Date.now() / 1000);
   const [counterResult, setCounterResult] = useState<VerifyCheckinResponse | null>(null);
@@ -51,7 +49,7 @@ export default function DisputePage() {
 
   const { attestation, loading: attLoading } = useAttestation(attestationId ?? null);
   const { streak } = useStreak(id ?? null);
-  const { participant: userParticipant } = useParticipant(id ?? null, solanaWallet?.address ?? null);
+  const { participant: userParticipant } = useParticipant(id ?? null, address);
   const { sendTransaction, sending } = useSolanaTransaction();
 
   const secondsLeft = attestation ? attestation.disputeWindowEnds - now : 0;
@@ -64,9 +62,9 @@ export default function DisputePage() {
   const canFinalize = attestation?.state === AttestationState.Pending && secondsLeft <= 0;
 
   async function handleFinalize() {
-    if (!solanaWallet?.address || !id || !attestation) return;
+    if (!address || !id || !attestation) return;
     try {
-      const caller = new PublicKey(solanaWallet.address);
+      const caller = new PublicKey(address!);
       const streakPk = new PublicKey(id);
       const participantPk = new PublicKey(attestation.participant);
       const attestationPk = new PublicKey(attestation.pubkey);
@@ -79,9 +77,9 @@ export default function DisputePage() {
   }
 
   async function handleDispute() {
-    if (!solanaWallet?.address || !id || !attestation) return;
+    if (!address || !id || !attestation) return;
     try {
-      const disputer = new PublicKey(solanaWallet.address);
+      const disputer = new PublicKey(address!);
       const streak_ = new PublicKey(id);
       const targetParticipant = new PublicKey(attestation.participant);
       const attestationPk = new PublicKey(attestation.pubkey);
@@ -94,7 +92,7 @@ export default function DisputePage() {
   }
 
   async function handleResolve() {
-    if (!solanaWallet?.address || !id || !attestation || !streak) return;
+    if (!address || !id || !attestation || !streak) return;
     setResolving(true);
     try {
       // Step 1: Get counter-attestation from API
@@ -125,7 +123,7 @@ export default function DisputePage() {
       const counterMsg = buildCounterAttestationMessage(data, attestation.participant, id, attestation.dayIndex);
 
       // Step 3: Send resolve_dispute transaction
-      const resolver = new PublicKey(solanaWallet.address);
+      const resolver = new PublicKey(address!);
       const targetParticipant = new PublicKey(attestation.participant);
       const disputer = attestation.disputer ? new PublicKey(attestation.disputer) : resolver;
 
@@ -221,10 +219,10 @@ export default function DisputePage() {
           )}
         </div>
 
-        {!authenticated ? (
+        {!connected ? (
           <div className="text-center py-6">
             <p className="text-sm text-smoke-500 mb-4">Connect to participate in disputes</p>
-            <button onClick={() => login()} className="bg-grape-500 text-white hover:bg-grape-600 rounded-lg px-6 py-2.5 text-sm font-medium">
+            <button onClick={() => void connect()} className="bg-grape-500 text-white hover:bg-grape-600 rounded-lg px-6 py-2.5 text-sm font-medium">
               Connect
             </button>
           </div>

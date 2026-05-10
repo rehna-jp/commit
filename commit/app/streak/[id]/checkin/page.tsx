@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallet } from '@/app/lib/wallet-context';
 import { PublicKey } from '@solana/web3.js';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,7 +10,6 @@ import { Navbar } from '../../../components/Navbar';
 import { PhotoVerifier } from '../../../components/PhotoVerifier';
 import { GitHubVerifier } from '../../../components/GitHubVerifier';
 import { HabitChip } from '../../../components/HabitTypeSelector';
-import { findSolanaWallet } from '../../../lib/privy-utils';
 import { useStreak, useParticipant } from '../../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../../lib/use-solana-tx';
 import { buildSubmitCheckinIxs, findParticipantPda } from '../../../lib/solana';
@@ -22,15 +21,14 @@ type Method = 'photo' | 'github';
 export default function CheckinPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
-  const solanaWallet = findSolanaWallet(wallets);
+  const { connected, publicKey, connect } = useWallet();
+  const address = publicKey?.toBase58() ?? null;
 
   const [method, setMethod] = useState<Method>('photo');
   const [success, setSuccess] = useState(false);
 
   const { streak, loading } = useStreak(id ?? null);
-  const { participant } = useParticipant(id ?? null, solanaWallet?.address ?? null);
+  const { participant } = useParticipant(id ?? null, address);
   const { sendTransaction, sending } = useSolanaTransaction();
 
   const now = Date.now() / 1000;
@@ -39,9 +37,9 @@ export default function CheckinPage() {
     : 0;
 
   const participantPubkey = (() => {
-    if (!solanaWallet?.address || !id) return null;
+    if (!address || !id) return null;
     try {
-      const [pda] = findParticipantPda(new PublicKey(id), new PublicKey(solanaWallet.address));
+      const [pda] = findParticipantPda(new PublicKey(id), new PublicKey(address));
       return pda.toBase58();
     } catch { return null; }
   })();
@@ -72,7 +70,7 @@ export default function CheckinPage() {
     }
   }
 
-  if (!authenticated) {
+  if (!connected) {
     return (
       <div className="relative min-h-screen bg-[#07050d] text-white overflow-hidden">
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -83,7 +81,7 @@ export default function CheckinPage() {
         <div className="relative z-10 flex flex-col items-center justify-center pt-40 px-6 text-center">
           <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-10 max-w-md shadow-2xl">
             <h1 className="text-3xl font-bold text-white mb-4">Connect wallet to check in</h1>
-            <button onClick={() => login()} className="group relative overflow-hidden w-full bg-grape-500 text-white rounded-xl px-6 py-4 text-base font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(94,84,142,0.5)]">
+            <button onClick={() => void connect()} className="group relative overflow-hidden w-full bg-grape-500 text-white rounded-xl px-6 py-4 text-base font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(94,84,142,0.5)]">
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
               <span className="relative">Connect Wallet</span>
             </button>

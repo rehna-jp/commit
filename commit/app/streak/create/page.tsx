@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { useWallet } from '@/app/lib/wallet-context';
 import { PublicKey } from '@solana/web3.js';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -11,16 +11,13 @@ import { HabitTypeSelector } from '../../components/HabitTypeSelector';
 import { HabitType } from '../../lib/types';
 import { useSolanaTransaction } from '../../lib/use-solana-tx';
 import { buildCreateStreakIxs } from '../../lib/solana';
-import { findSolanaWallet } from '../../lib/privy-utils';
 import { toBaseUnits } from '../../lib/constants';
 
 const DURATION_PRESETS = [7, 14, 21, 30];
 
 export default function CreateStreakPage() {
   const router = useRouter();
-  const { authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
-  const solanaWallet = findSolanaWallet(wallets);
+  const { connected, publicKey, connect } = useWallet();
 
   const [name, setName] = useState('');
   const [habitType, setHabitType] = useState<HabitType>(HabitType.Code);
@@ -34,7 +31,7 @@ export default function CreateStreakPage() {
 
   const { sendTransaction, sending } = useSolanaTransaction();
 
-  if (!authenticated) {
+  if (!connected) {
     return (
       <div className="relative min-h-screen bg-[#07050d] text-white overflow-hidden">
         <div className="absolute inset-0 z-0 pointer-events-none">
@@ -48,7 +45,7 @@ export default function CreateStreakPage() {
             <p className="text-base text-smoke-500 mb-10">
               You must connect your Solana wallet to deploy a new habit streak to the protocol.
             </p>
-            <button onClick={() => login()} className="group relative overflow-hidden w-full bg-grape-500 text-white rounded-xl px-6 py-4 text-base font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(94,84,142,0.5)]">
+            <button onClick={() => void connect()} className="group relative overflow-hidden w-full bg-grape-500 text-white rounded-xl px-6 py-4 text-base font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(94,84,142,0.5)]">
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
               <span className="relative">Connect Wallet</span>
             </button>
@@ -60,7 +57,7 @@ export default function CreateStreakPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!solanaWallet?.address) { toast.error('No Solana wallet connected'); return; }
+    if (!publicKey) { toast.error('No Solana wallet connected'); return; }
     if (!name.trim()) { toast.error('Enter a streak name'); return; }
     if (!startDate) { toast.error('Select a start date'); return; }
     if (new Date(startDate) <= new Date()) { toast.error('Start date must be in the future'); return; }
@@ -70,7 +67,7 @@ export default function CreateStreakPage() {
     const startTs = Math.floor(new Date(startDate).getTime() / 1000);
 
     try {
-      const ixs = await buildCreateStreakIxs(new PublicKey(solanaWallet.address), {
+      const ixs = await buildCreateStreakIxs(publicKey, {
         name: name.trim(),
         habitType,
         habitPrompt,
