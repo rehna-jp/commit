@@ -50,6 +50,10 @@ pub enum CommitError {
     InvalidStartTime,
     #[msg("Already claimed")]
     AlreadyClaimed,
+    #[msg("Streak has not ended yet")]
+    StreakNotEnded,
+    #[msg("Streak was completed — use claim_reward instead")]
+    StreakComplete,
     #[msg("Arithmetic overflow")]
     Overflow,
 }

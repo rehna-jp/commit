@@ -1,11 +1,14 @@
-// Gemini vision client for habit check-in verification
-import { GoogleGenerativeAI } from '@google/generative-ai';
+// Groq vision client for habit check-in verification (Llama 4 Scout)
+import OpenAI from 'openai';
 
-let _client: GoogleGenerativeAI | null = null;
+let _client: OpenAI | null = null;
 
-function getClient(): GoogleGenerativeAI {
+function getClient(): OpenAI {
   if (!_client) {
-    _client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+    _client = new OpenAI({
+      apiKey: process.env.GROQ_API_KEY!,
+      baseURL: 'https://api.groq.com/openai/v1',
+    });
   }
   return _client;
 }
@@ -15,32 +18,36 @@ export interface VerificationResult {
   reason: string;
 }
 
-export async function verifyWithKimi(
+export async function verifyWithGroq(
   prompt: string,
   imageBase64: string,
 ): Promise<VerificationResult> {
-  const model = getClient().getGenerativeModel({ model: 'gemini-1.5-flash' });
-
-  const result = await model.generateContent([
-    prompt,
-    {
-      inlineData: {
-        mimeType: 'image/jpeg',
-        data: imageBase64,
+  const response = await getClient().chat.completions.create({
+    model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          {
+            type: 'image_url',
+            image_url: { url: `data:image/jpeg;base64,${imageBase64}` },
+          },
+        ],
       },
-    },
-  ]);
+    ],
+    response_format: { type: 'json_object' },
+    max_tokens: 256,
+  });
 
-  const raw = result.response.text();
-  const cleaned = raw.replace(/^```json\n?|^```\n?|\n?```$/gm, '').trim();
+  const raw = response.choices[0]?.message?.content ?? '';
 
   try {
-    const parsed = JSON.parse(cleaned) as { verdict: boolean; reason: string };
+    const parsed = JSON.parse(raw) as { verdict: boolean; reason: string };
     return { verdict: Boolean(parsed.verdict), reason: String(parsed.reason) };
   } catch {
-    // Best-effort parse if Gemini adds extra text
-    const verdictMatch = cleaned.match(/"verdict"\s*:\s*(true|false)/i);
-    const reasonMatch = cleaned.match(/"reason"\s*:\s*"([^"]+)"/i);
+    const verdictMatch = raw.match(/"verdict"\s*:\s*(true|false)/i);
+    const reasonMatch = raw.match(/"reason"\s*:\s*"([^"]+)"/i);
     if (verdictMatch) {
       return {
         verdict: verdictMatch[1].toLowerCase() === 'true',

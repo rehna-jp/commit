@@ -45,17 +45,18 @@ export default function CheckinPage() {
   })();
 
   async function handleVerified(result: VerifyCheckinResponse) {
-    if (!result.verifier_signature || !participantPubkey || !id) {
+    if (!result.verifier_signature || !participantPubkey || !id || !address) {
       toast.error('Missing data — please try again');
       return;
     }
     try {
       const ixs = await buildSubmitCheckinIxs({
         participantPubkey,
+        userPubkey: address,
         streakPubkey: id,
         dayIndex,
         verifierSignature: Buffer.from(result.verifier_signature, 'hex'),
-        attestationMessage: buildAttestationMessage(result, participantPubkey, id, dayIndex),
+        attestationMessage: buildAttestationMessage(result, address, id, dayIndex),
         photoHash: Buffer.from(result.photo_hash, 'hex'),
         phash: BigInt('0x' + result.phash),
         verdictTrue: true,
@@ -179,14 +180,14 @@ export default function CheckinPage() {
             {method === 'github' && streak.habitType === HabitType.Code ? (
               <GitHubVerifier
                 streakPubkey={id}
-                participantPubkey={participantPubkey ?? ''}
+                participantPubkey={address ?? ''}
                 dayIndex={dayIndex}
                 onVerified={(r) => void handleVerified(r)}
               />
             ) : (
               <PhotoVerifier
                 streakPubkey={id}
-                participantPubkey={participantPubkey ?? ''}
+                participantPubkey={address ?? ''}
                 dayIndex={dayIndex}
                 habitType={streak.habitType}
                 habitPrompt={streak.habitPrompt}

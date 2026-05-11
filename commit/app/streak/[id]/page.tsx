@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useWallet } from '@/app/lib/wallet-context';
 import { PublicKey } from '@solana/web3.js';
-import { Loader2, Trophy, Clock, Users, TrendingUp } from 'lucide-react';
+import { Loader2, Trophy, Clock, Users, TrendingUp, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '../../components/Navbar';
 import { HabitChip } from '../../components/HabitTypeSelector';
@@ -14,7 +14,7 @@ import { AttestationCard } from '../../components/AttestationCard';
 import { StakeWidget } from '../../components/StakeWidget';
 import { useStreak, useParticipant, useStreakParticipants, useStreakAttestations } from '../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../lib/use-solana-tx';
-import { buildClaimRewardIxs } from '../../lib/solana';
+import { buildClaimRewardIxs, buildWithdrawFailedIxs } from '../../lib/solana';
 import { formatUsdc } from '../../lib/constants';
 
 export default function StreakDetailPage() {
@@ -34,10 +34,13 @@ export default function StreakDetailPage() {
     ? Math.min(Math.floor((now - streak.startTimestamp) / 86400) + 1, streak.durationDays)
     : 0;
   const progress = streak ? Math.round((daysPassed / streak.durationDays) * 100) : 0;
+  const streakEnded = streak ? now >= streak.startTimestamp + streak.durationDays * 86400 : false;
   const canJoin = !userParticipant && streak && participants.length < streak.maxParticipants;
-  const canCheckin = userParticipant?.isActive && started;
+  const canCheckin = userParticipant?.isActive && started && !streakEnded;
   const canClaim = userParticipant?.isActive && !userParticipant.hasClaimed &&
-    daysPassed >= (streak?.durationDays ?? 999);
+    streakEnded && (userParticipant.currentStreak ?? 0) >= (streak?.durationDays ?? 999);
+  const canWithdraw = userParticipant?.isActive && !userParticipant.hasClaimed &&
+    streakEnded && (userParticipant.currentStreak ?? 0) < (streak?.durationDays ?? 999);
 
   async function handleClaim() {
     if (!publicKey || !id) return;
@@ -53,6 +56,17 @@ export default function StreakDetailPage() {
       toast.success('Reward claimed! Soulbound NFT minted.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Claim failed');
+    }
+  }
+
+  async function handleWithdraw() {
+    if (!publicKey || !id) return;
+    try {
+      const ixs = await buildWithdrawFailedIxs(publicKey, new PublicKey(id));
+      await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
+      toast.success('Remaining stake returned to your wallet.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Withdraw failed');
     }
   }
 
@@ -173,6 +187,13 @@ export default function StreakDetailPage() {
                   <div className="absolute inset-0 bg-gradient-to-r from-orchid-400/0 via-orchid-400/20 to-orchid-400/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
                   {sending ? <Loader2 size={18} className="animate-spin relative" /> : <Trophy size={18} className="relative" />}
                   <span className="relative">Claim Reward & Mint NFT</span>
+                </button>
+              )}
+              {canWithdraw && (
+                <button onClick={() => void handleWithdraw()} disabled={sending}
+                  className="flex items-center gap-2 bg-zinc-800/60 border border-zinc-600/50 text-zinc-300 hover:bg-zinc-700/60 hover:text-white disabled:opacity-50 rounded-xl px-8 py-3.5 text-base font-bold transition-all active:scale-95">
+                  {sending ? <Loader2 size={18} className="animate-spin" /> : <LogOut size={18} />}
+                  <span>Withdraw Remaining Stake</span>
                 </button>
               )}
               {userParticipant?.hasClaimed && (

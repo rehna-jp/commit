@@ -67,7 +67,7 @@ export default function CreateStreakPage() {
     const startTs = Math.floor(new Date(startDate).getTime() / 1000);
 
     try {
-      const ixs = await buildCreateStreakIxs(publicKey, {
+      const { ixs, streakPubkey } = await buildCreateStreakIxs(publicKey, {
         name: name.trim(),
         habitType,
         habitPrompt,
@@ -79,7 +79,7 @@ export default function CreateStreakPage() {
       });
       await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
       toast.success('Streak created!');
-      router.push('/dashboard');
+      router.push(`/streak/${streakPubkey}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to create streak');
     }

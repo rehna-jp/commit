@@ -40,7 +40,7 @@ commit/
 - **Frontend:** Next.js 14 App Router, TypeScript strict, Tailwind CSS
 - **Wallet:** Native browser wallet-standard — Phantom, Solflare, Backpack (no third-party auth SDK)
 - **Cross-chain:** LI.FI SDK — stake entry from any EVM chain → Solana USDC
-- **AI:** MOONSHOT API 
+- **AI:** Groq API (Llama 4 Scout vision model)
 - **Signing:** tweetnacl for ed25519 attestation signing
 - **pHash:** sharp for image processing, DCT-based 64-bit perceptual hash
 - **GitHub:** @octokit/rest for coding habit auto-verification
@@ -173,7 +173,7 @@ Slashed:    red    — bg #FEE2E2, text #991B1B, dot #EF4444
 ```
 NEXT_PUBLIC_SOLANA_RPC, NEXT_PUBLIC_PROGRAM_ID, NEXT_PUBLIC_USDC_MINT
 NEXT_PUBLIC_LIFI_INTEGRATOR=commit
-ANTHROPIC_API_KEY, VERIFIER_PRIVATE_KEY, NEXT_PUBLIC_VERIFIER_PUBLIC_KEY
+GROQ_API_KEY, VERIFIER_PRIVATE_KEY, NEXT_PUBLIC_VERIFIER_PUBLIC_KEY
 GITHUB_APP_TOKEN
 ```
 

@@ -10,9 +10,10 @@ interface Props {
   streak: Streak;
   showCheckin?: boolean;
   currentDay?: number;
+  isParticipant?: boolean;
 }
 
-export function StreakCard({ streak, showCheckin, currentDay }: Props) {
+export function StreakCard({ streak, showCheckin, currentDay, isParticipant }: Props) {
   const now = Date.now() / 1000;
   const started = streak.startTimestamp <= now;
   const daysPassed = started
@@ -103,8 +104,8 @@ export function StreakCard({ streak, showCheckin, currentDay }: Props) {
             href={`/streak/${streak.pubkey}`}
             className="group/btn relative overflow-hidden flex-1 text-center bg-orchid-500/10 text-orchid-400 border border-orchid-500/30 hover:border-orchid-500/60 hover:bg-orchid-500/20 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all hover:shadow-[0_0_15px_rgba(202,121,165,0.4)] active:scale-95"
           >
-             <div className="absolute inset-0 bg-gradient-to-r from-orchid-400/0 via-orchid-400/20 to-orchid-400/0 opacity-0 transition-opacity duration-500 group-hover/btn:opacity-100 group-hover/btn:animate-[shimmer_2s_infinite]"></div>
-            <span className="relative">Join Streak</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-orchid-400/0 via-orchid-400/20 to-orchid-400/0 opacity-0 transition-opacity duration-500 group-hover/btn:opacity-100 group-hover/btn:animate-[shimmer_2s_infinite]"></div>
+            <span className="relative">{isParticipant ? 'Awaiting Start' : 'Join Streak'}</span>
           </Link>
         )}
       </div>

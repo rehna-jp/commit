@@ -2,14 +2,14 @@
 
 > **Stake it. Prove it. Let the chain decide.**
 
-commit is a habit-accountability protocol on Solana. Users stake USDC on daily habits — coding, reading, writing, design, or gym. Every check-in is verified by Gemini AI and stored as a cryptographically signed attestation on-chain. Disputes are resolved by a stricter counter-prompt. A perceptual hash registry blocks photo reuse before AI even runs. Complete your streak and claim the reward pool. Miss a day and get slashed. Finish and mint a soulbound completion NFT that lives on-chain forever.
+commit is a habit-accountability protocol on Solana. Users stake USDC on daily habits — coding, reading, writing, design, or gym. Every check-in is verified by Groq AI (Llama 4 Scout) and stored as a cryptographically signed attestation on-chain. Disputes are resolved by a stricter counter-prompt. A perceptual hash registry blocks photo reuse before AI even runs. Complete your streak and claim the reward pool. Miss a day and get slashed. Finish and mint a soulbound completion NFT that lives on-chain forever.
 
 ---
 
 ## Three Novel Technical Contributions
 
 ### 1 — Verifiable AI Attestations
-Gemini verdicts are ed25519-signed by the verifier backend, packed into a deterministic 171-byte message, and verified on-chain by Solana's native `Ed25519Program`. Every accepted check-in can be disputed within a 24-hour window. Disputes trigger a stricter counter-prompt; the result updates the attestation state and distributes bonds atomically. The full optimistic verification trail is permanently on-chain.
+Groq (Llama 4 Scout) verdicts are ed25519-signed by the verifier backend, packed into a deterministic 171-byte message, and verified on-chain by Solana's native `Ed25519Program`. Every accepted check-in can be disputed within a 24-hour window. Disputes trigger a stricter counter-prompt; the result updates the attestation state and distributes bonds atomically. The full optimistic verification trail is permanently on-chain.
 
 ### 2 — On-Chain Perceptual Hash Registry
 Every accepted photo's 64-bit DCT perceptual hash is appended to a `PhashRegistry` PDA. On the next check-in, the contract computes Hamming distance against every stored hash (~12 CU per comparison). If distance ≤ 8, the submission is rejected before AI runs — making photo reuse cryptographically impossible at the protocol level.
@@ -39,7 +39,7 @@ Join Streak     →  USDC locked into escrow (creator must also join)
       ↓
 Check In        →  upload photo (or GitHub auto-verify for Code)
       ↓
-AI Verifies     →  Gemini reviews → backend signs 171-byte attestation
+AI Verifies     →  Groq reviews → backend signs 171-byte attestation
       ↓
 On-chain        →  CheckinAttestation PDA created (state: Pending)
       ↓
@@ -52,7 +52,8 @@ Miss a day?     →  slash_missed → penalty% moves to reward pool
       ↓
 Streak ends
       ↓
-Claim Reward    →  stake returned + pool share + soulbound NFT minted
+Completed?  Yes →  claim_reward → stake + pool share + soulbound NFT minted
+            No  →  withdraw_failed → unslashed remaining stake returned
 ```
 
 ---
@@ -69,9 +70,9 @@ Rewards come entirely from participants who failed. No external funding, no toke
 | 4 people quit, each slashed 50% | 10 USDC moves to reward pool |
 | 6 people complete | Each gets 5 USDC (stake) + 1.67 USDC (pool share) |
 | **Net for completers** | **6.67 USDC — 33% return** |
-| **Net for quitters** | **2.50 USDC remaining** |
+| **Net for quitters** | **2.50 USDC returned via withdraw_failed** |
 
-> *The more people fail, the more completers earn.*
+> *The more people fail, the more completers earn. Quitters lose only the slashed portion — unslashed stake is always returnable after the streak ends.*
 
 ---
 
@@ -83,7 +84,7 @@ commit/
 │   ├── programs/commit/src/
 │   │   ├── lib.rs                 # Entry point, program constants
 │   │   ├── state/                 # 5 account types
-│   │   ├── instructions/          # 8 instructions
+│   │   ├── instructions/          # 9 instructions
 │   │   ├── errors.rs
 │   │   └── utils.rs               # ed25519 verify + Hamming distance
 │   ├── scripts/
@@ -92,7 +93,7 @@ commit/
 └── app/                           # Next.js 16 (App Router)
     ├── app/                       # Pages + layout
     ├── api/                       # Verification API routes
-    │   ├── verify-checkin/        # Photo → Gemini → signed attestation
+    │   ├── verify-checkin/        # Photo → Groq → signed attestation
     │   ├── verify-counter/        # Dispute counter-review
     │   ├── verify-github/         # GitHub auto-verification (Code habit)
     │   └── verifier-pubkey/       # Returns verifier public key
@@ -114,7 +115,7 @@ commit/
 | `PhashRegistry` | `[phash, streak]` | `Vec<u64>` of all accepted photo hashes |
 | `StreakProof` | `[proof, streak, owner]` | Completion record for NFT metadata |
 
-### 8 Instructions
+### 9 Instructions
 
 | Instruction | Description |
 |---|---|
@@ -126,6 +127,7 @@ commit/
 | `finalize_checkin` | After dispute window, lock in the day and append pHash |
 | `slash_missed` | After 48h grace period, slash penalty percentage into pool |
 | `claim_reward` | Return stake + pool share, mint soulbound NFT, create StreakProof |
+| `withdraw_failed` | After streak ends, return unslashed stake to participants who didn't complete |
 
 ### Protocol Constants
 
@@ -145,7 +147,7 @@ VERIFIER_PUBKEY [32] || participant [32] || streak [32]
 || verdict [1] || reason_hash [32]
 ```
 
-Signed with ed25519 via tweetnacl. Verified on-chain via Solana's native ed25519 program. The sigverify instruction must be at index 0 and the program instruction at index 1.
+Signed with ed25519 via tweetnacl. Verified on-chain via Solana's native ed25519 program. The on-chain verifier scans all transaction instructions for the Ed25519 entry.
 
 ---
 
@@ -156,7 +158,7 @@ Signed with ed25519 via tweetnacl. Verified on-chain via Solana's native ed25519
 | Smart contract | Rust + Anchor 0.32, SPL Token (USDC escrow), Token-2022 (soulbound NFTs) |
 | Frontend | Next.js 16, React 19, TypeScript strict, Tailwind CSS v4 |
 | Wallet | Native browser wallet-standard — Phantom, Solflare, Backpack |
-| AI verification | Gemini (`gemini-1.5-flash`) via Google Generative AI SDK |
+| AI verification | Groq (`llama-4-scout-17b-16e-instruct`) via Groq SDK |
 | Cross-chain staking | LI.FI SDK v3 — bridge USDC from any EVM chain to Solana (mainnet) |
 | Attestation signing | tweetnacl ed25519 keypair |
 | Perceptual hash | `sharp` — DCT-based 64-bit pHash |
@@ -184,7 +186,7 @@ Signed with ed25519 via tweetnacl. Verified on-chain via Solana's native ed25519
 - Node.js ≥ 20
 - Rust + [Anchor CLI 0.32](https://www.anchor-lang.com/docs/installation)
 - Solana CLI ≥ 1.18 configured for devnet (`solana config set --url devnet`)
-- A [Google AI Studio](https://aistudio.google.com/app/apikey) API key (free)
+- A [Groq](https://console.groq.com) API key (free)
 
 ### Installation
 
@@ -207,8 +209,8 @@ NEXT_PUBLIC_USDC_MINT=4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU
 # LI.FI
 NEXT_PUBLIC_LIFI_INTEGRATOR=commit
 
-# AI verification (free tier — get key at aistudio.google.com/app/apikey)
-GEMINI_API_KEY=<your-gemini-api-key>
+# AI verification (free tier — get key at console.groq.com)
+GROQ_API_KEY=<your-groq-api-key>
 
 # Attestation signing
 VERIFIER_PRIVATE_KEY=<base58-ed25519-secret-key>
@@ -286,12 +288,8 @@ Users can stake from any EVM chain — no need to hold SOL or Solana USDC first.
 
 ## Security Notes
 
-- **Ed25519 ordering** — sigverify instruction must be at index 0; program instruction at index 1.
+- **Ed25519 ordering** — the on-chain program scans all transaction instructions for the Ed25519 sigverify entry (wallets like Phantom prepend ComputeBudget instructions, so position is not assumed).
 - **Token-2022 extension ordering** — `NonTransferable` must be initialized before `initialize_mint2`.
-- **Prompt injection** — custom `habit_prompt` fields are truncated to 256 chars, stripped of control characters, and wrapped in `<user_provided_criteria>` delimiters before reaching Gemini.
+- **Prompt injection** — custom `habit_prompt` fields are truncated to 256 chars, stripped of control characters, and wrapped in `<user_provided_criteria>` delimiters before reaching Groq.
 - **pHash check is on-chain** — photo reuse cannot be bypassed even if the verifier backend is compromised.
 - **Verifier keypair** — `VERIFIER_PRIVATE_KEY` must never be committed. The on-chain `VERIFIER_PUBKEY` is hardcoded and requires a program upgrade to rotate.
-
----
-
-*Built at Dev3pack Hackathon 2026*

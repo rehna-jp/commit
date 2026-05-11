@@ -17,10 +17,12 @@ pub fn hamming_distance(a: u64, b: u64) -> u32 {
     (a ^ b).count_ones()
 }
 
-/// Parse the ed25519 instruction at index 0 and verify the attestation.
+/// Scan all instructions in the sysvar for the ed25519 sigverify instruction.
+/// Wallets (Phantom, Backpack, etc.) often prepend ComputeBudget instructions,
+/// so the ed25519 instruction may not be at index 0.
 ///
 /// Layout of ed25519 instruction data:
-///   [0..2]  num_signatures (u16 LE, effectively u8 count + padding)
+///   [0..2]  num_signatures (u16 LE)
 ///   [2..4]  signature_offset (u16 LE)
 ///   [4..6]  signature_instruction_index (u16 LE) — 0xFFFF = this ix
 ///   [6..8]  public_key_offset (u16 LE)
@@ -35,14 +37,19 @@ pub fn verify_ed25519_ix(
     ix_sysvar: &AccountInfo,
     expected_pubkey: &[u8; 32],
 ) -> Result<[u8; ATTESTATION_MSG_LEN]> {
-    let ed25519_ix = load_instruction_at_checked(0, ix_sysvar)
-        .map_err(|_| CommitError::MissingSigVerify)?;
-
-    require_keys_eq!(
-        ed25519_ix.program_id,
-        ed25519_program_id(),
-        CommitError::MissingSigVerify
-    );
+    // Scan instructions — wallet may prepend ComputeBudget at index 0
+    let mut ed25519_ix_opt = None;
+    for i in 0..16u8 {
+        match load_instruction_at_checked(i as usize, ix_sysvar) {
+            Ok(ix) if ix.program_id == ed25519_program_id() => {
+                ed25519_ix_opt = Some(ix);
+                break;
+            }
+            Ok(_) => continue,
+            Err(_) => break,
+        }
+    }
+    let ed25519_ix = ed25519_ix_opt.ok_or(CommitError::MissingSigVerify)?;
 
     let data = &ed25519_ix.data;
     require!(data.len() >= 16, CommitError::InvalidSignature);

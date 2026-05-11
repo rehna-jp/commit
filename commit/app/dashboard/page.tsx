@@ -135,6 +135,7 @@ export default function DashboardPage() {
                     streak={streak}
                     showCheckin={started && !checkedInToday && !!participant?.isActive}
                     currentDay={daysPassed}
+                    isParticipant
                   />
                 );
               })}
