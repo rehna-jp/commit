@@ -10,6 +10,7 @@ import {
 } from '@solana/web3.js';
 import {
   getAssociatedTokenAddressSync,
+  createAssociatedTokenAccountIdempotentInstruction,
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -120,7 +121,7 @@ export interface ResolveDisputeArgs {
 export async function buildCreateStreakIxs(
   creator: PublicKey,
   args: CreateStreakArgs
-): Promise<TransactionInstruction[]> {
+): Promise<{ ixs: TransactionInstruction[]; streakPubkey: string }> {
   const [streakPda] = findStreakPda(creator, args.name);
   const [phashRegistryPda] = findPhashRegistryPda(streakPda);
   const [escrowPda] = findEscrowPda(streakPda);
@@ -158,7 +159,7 @@ export async function buildCreateStreakIxs(
     })
     .instruction();
 
-  return [ix];
+  return { ixs: [ix], streakPubkey: streakPda.toBase58() };
 }
 
 export async function buildJoinStreakIxs(
@@ -169,8 +170,13 @@ export async function buildJoinStreakIxs(
   const [escrowPda] = findEscrowPda(streak);
   const userUsdc = getUsdcAta(user);
 
+  // Ensure USDC ATA exists — no-op if already initialized
+  const createAtaIx = createAssociatedTokenAccountIdempotentInstruction(
+    user, userUsdc, user, USDC_MINT,
+  );
+
   const program = getProgram(user.toBase58());
-  const ix = await program.methods
+  const joinIx = await program.methods
     .joinStreak()
     .accounts({
       streak,
@@ -184,7 +190,7 @@ export async function buildJoinStreakIxs(
     })
     .instruction();
 
-  return [ix];
+  return [createAtaIx, joinIx];
 }
 
 /**
@@ -378,4 +384,29 @@ export async function buildClaimRewardIxs(
     .instruction();
 
   return { ixs: [ix], completionMint };
+}
+
+export async function buildWithdrawFailedIxs(
+  user: PublicKey,
+  streak: PublicKey
+): Promise<TransactionInstruction[]> {
+  const [participantPda] = findParticipantPda(streak, user);
+  const [escrowPda] = findEscrowPda(streak);
+  const userUsdc = getUsdcAta(user);
+
+  const program = getProgram(user.toBase58());
+  const ix = await program.methods
+    .withdrawFailed()
+    .accounts({
+      streak,
+      participant: participantPda,
+      escrowTokenAccount: escrowPda,
+      userTokenAccount: userUsdc,
+      usdcMint: USDC_MINT,
+      user,
+      tokenProgram: TOKEN_PROGRAM_ID,
+    })
+    .instruction();
+
+  return [ix];
 }

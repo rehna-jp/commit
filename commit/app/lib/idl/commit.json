@@ -882,6 +882,100 @@
           }
         }
       ]
+    },
+    {
+      "name": "withdraw_failed",
+      "discriminator": [
+        235,
+        53,
+        122,
+        63,
+        87,
+        220,
+        130,
+        215
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true,
+          "relations": [
+            "participant"
+          ]
+        },
+        {
+          "name": "participant",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  114,
+                  116,
+                  105,
+                  99,
+                  105,
+                  112,
+                  97,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
     }
   ],
   "accounts": [
@@ -1074,6 +1168,16 @@
     },
     {
       "code": 6024,
+      "name": "StreakNotEnded",
+      "msg": "Streak has not ended yet"
+    },
+    {
+      "code": 6025,
+      "name": "StreakComplete",
+      "msg": "Streak was completed — use claim_reward instead"
+    },
+    {
+      "code": 6026,
       "name": "Overflow",
       "msg": "Arithmetic overflow"
     }

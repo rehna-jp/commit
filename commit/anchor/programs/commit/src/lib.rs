@@ -60,4 +60,8 @@ pub mod commit {
     pub fn claim_reward(ctx: Context<ClaimReward>) -> Result<()> {
         instructions::claim_reward::handler(ctx)
     }
+
+    pub fn withdraw_failed(ctx: Context<WithdrawFailed>) -> Result<()> {
+        instructions::withdraw_failed::handler(ctx)
+    }
 }

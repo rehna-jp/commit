@@ -1155,6 +1155,25 @@ describe("commit", () => {
       await expectAnchorError(ctx, ixs, [payer], "DisputeWindowOpen");
     });
 
+    it("StreakNotEnded: cannot withdraw_failed before streak end time", async () => {
+      // streak ends at START + 7 * ONE_DAY; current time is still within it
+      const ixs = [
+        await program.methods
+          .withdrawFailed()
+          .accounts({
+            streak: streakKey,
+            participant: participantPDA(streakKey, bob.publicKey),
+            escrowTokenAccount: escrowPDA(streakKey),
+            userTokenAccount: bobAta,
+            usdcMint: usdcMintKp.publicKey,
+            user: bob.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .instruction(),
+      ];
+      await expectAnchorError(ctx, ixs, [bob], "StreakNotEnded");
+    });
+
     it("StreakIncomplete: cannot claim reward before completing all days", async () => {
       // bob has never checked in (current_streak=0, duration_days=7)
       const completionMint = Keypair.generate();
@@ -1187,6 +1206,168 @@ describe("commit", () => {
           .instruction(),
       ];
       await expectAnchorError(ctx, ixs, [bob, completionMint], "StreakIncomplete");
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // 7. WITHDRAW FAILED — unslashed stake returned after streak ends
+  // ──────────────────────────────────────────────────────────────────────────
+
+  describe("withdraw_failed: failed participant reclaims remaining stake", () => {
+    const NAME = "withdraw-streak";
+    const START = BASE_TS + 12_000;
+    const DURATION_DAYS = 3;
+    let streakKey: PublicKey;
+
+    before(async () => {
+      await setTs(ctx, BASE_TS + 11_500);
+      streakKey = streakPDA(bob.publicKey, NAME);
+
+      await sendTx(ctx, [
+        await program.methods
+          .createStreak({
+            name: NAME,
+            habitType: { gym: {} },
+            habitPrompt: "Show gym activity",
+            durationDays: DURATION_DAYS,
+            stakeAmount: STAKE_AMOUNT,
+            penaltyPercent: PENALTY_PCT,
+            startTimestamp: new BN(START),
+            maxParticipants: 10,
+          })
+          .accounts({
+            streak: streakKey,
+            phashRegistry: phashRegistryPDA(streakKey),
+            escrowTokenAccount: escrowPDA(streakKey),
+            usdcMint: usdcMintKp.publicKey,
+            creator: bob.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          })
+          .instruction(),
+      ], [bob]);
+
+      // alice and bob both join
+      await setTs(ctx, START - 10);
+      for (const [user, ata] of [[alice, aliceAta], [bob, bobAta]] as [Keypair, PublicKey][]) {
+        await sendTx(ctx, [
+          await program.methods
+            .joinStreak()
+            .accounts({
+              streak: streakKey,
+              participant: participantPDA(streakKey, user.publicKey),
+              userTokenAccount: ata,
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              user: user.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+            })
+            .instruction(),
+        ], [user]);
+      }
+
+      // slash alice twice (day 0 and day 1 missed) — she ends with 64% of stake
+      await setTs(ctx, START + TWO_DAYS + 1);
+      await sendTx(ctx, [
+        await program.methods
+          .slashMissed()
+          .accounts({
+            streak: streakKey,
+            participant: participantPDA(streakKey, alice.publicKey),
+            caller: payer.publicKey,
+          })
+          .instruction(),
+      ], [payer]);
+
+      await setTs(ctx, START + TWO_DAYS + ONE_DAY + 1);
+      await sendTx(ctx, [
+        await program.methods
+          .slashMissed()
+          .accounts({
+            streak: streakKey,
+            participant: participantPDA(streakKey, alice.publicKey),
+            caller: payer.publicKey,
+          })
+          .instruction(),
+      ], [payer]);
+    });
+
+    it("rejects withdraw_failed before streak end time", async () => {
+      // streak ends at START + DURATION_DAYS * ONE_DAY; we are still before that
+      await setTs(ctx, START + TWO_DAYS);
+      const ixs = [
+        await program.methods
+          .withdrawFailed()
+          .accounts({
+            streak: streakKey,
+            participant: participantPDA(streakKey, alice.publicKey),
+            escrowTokenAccount: escrowPDA(streakKey),
+            userTokenAccount: aliceAta,
+            usdcMint: usdcMintKp.publicKey,
+            user: alice.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .instruction(),
+      ];
+      await expectAnchorError(ctx, ixs, [alice], "StreakNotEnded");
+    });
+
+    it("returns unslashed remainder to alice after streak ends", async () => {
+      // move past streak end
+      await setTs(ctx, START + DURATION_DAYS * ONE_DAY + 1);
+
+      const stakeBefore = (await program.account.participant.fetch(
+        participantPDA(streakKey, alice.publicKey),
+      )).stakeLocked.toNumber();
+
+      const aliceBalBefore = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
+
+      await sendTx(ctx, [
+        await program.methods
+          .withdrawFailed()
+          .accounts({
+            streak: streakKey,
+            participant: participantPDA(streakKey, alice.publicKey),
+            escrowTokenAccount: escrowPDA(streakKey),
+            userTokenAccount: aliceAta,
+            usdcMint: usdcMintKp.publicKey,
+            user: alice.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .instruction(),
+      ], [alice]);
+
+      const aliceBalAfter = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
+
+      const participantAfter = await program.account.participant.fetch(
+        participantPDA(streakKey, alice.publicKey),
+      );
+
+      // alice should have received exactly her remaining stake back
+      expect(aliceBalAfter - aliceBalBefore).to.equal(BigInt(stakeBefore));
+      expect(participantAfter.stakeLocked.toNumber()).to.equal(0);
+      expect(participantAfter.isActive).to.equal(false);
+      expect(participantAfter.hasClaimed).to.equal(true);
+    });
+
+    it("rejects a second withdraw_failed (already claimed)", async () => {
+      const ixs = [
+        await program.methods
+          .withdrawFailed()
+          .accounts({
+            streak: streakKey,
+            participant: participantPDA(streakKey, alice.publicKey),
+            escrowTokenAccount: escrowPDA(streakKey),
+            userTokenAccount: aliceAta,
+            usdcMint: usdcMintKp.publicKey,
+            user: alice.publicKey,
+            tokenProgram: TOKEN_PROGRAM_ID,
+          })
+          .instruction(),
+      ];
+      await expectAnchorError(ctx, ixs, [alice], "ParticipantInactive");
     });
   });
 });
