@@ -26,6 +26,10 @@ export async function verifyWithGroq(
     model: 'meta-llama/llama-4-scout-17b-16e-instruct',
     messages: [
       {
+        role: 'system',
+        content: 'You are a strict habit verifier. Always respond with valid JSON only.',
+      },
+      {
         role: 'user',
         content: [
           { type: 'text', text: prompt },

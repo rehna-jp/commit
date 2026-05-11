@@ -12,9 +12,8 @@ use state::HabitType;
 
 declare_id!("3Gd8xHLKGjj8evBtwQUTnawSTwWdbeAxZmtVyxMPm29G");
 
-// Test keypair: nacl.sign.keyPair.fromSeed(Buffer.alloc(32, 42)).publicKey
-// To regenerate for production: node anchor/scripts/gen-verifier-keypair.js
-pub const VERIFIER_PUBKEY: [u8; 32] = [25, 127, 107, 35, 225, 108, 133, 50, 198, 171, 200, 56, 250, 205, 94, 167, 137, 190, 12, 118, 178, 146, 3, 52, 3, 155, 250, 139, 61, 54, 141, 97];
+// Verifier keypair from VERIFIER_PRIVATE_KEY / NEXT_PUBLIC_VERIFIER_PUBLIC_KEY in .env.local
+pub const VERIFIER_PUBKEY: [u8; 32] = [27, 162, 170, 2, 66, 174, 50, 216, 171, 250, 103, 44, 19, 130, 126, 197, 15, 134, 224, 188, 43, 169, 193, 83, 125, 8, 171, 78, 218, 244, 141, 231];
 
 pub const DISPUTE_WINDOW_SECONDS: i64 = 60;           // 1 minute (devnet testing — restore to 86_400 for production)
 pub const DISPUTE_BOND_PERCENT: u64 = 10;             // 10% of stake

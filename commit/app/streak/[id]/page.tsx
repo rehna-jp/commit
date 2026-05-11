@@ -12,10 +12,14 @@ import { Leaderboard } from '../../components/Leaderboard';
 import { RewardPool } from '../../components/RewardPool';
 import { AttestationCard } from '../../components/AttestationCard';
 import { StakeWidget } from '../../components/StakeWidget';
-import { useStreak, useParticipant, useStreakParticipants, useStreakAttestations } from '../../lib/use-chain-data';
+import { useStreak, useParticipant, useStreakParticipants } from '../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../lib/use-solana-tx';
-import { buildClaimRewardIxs, buildWithdrawFailedIxs } from '../../lib/solana';
+import { buildClaimRewardIxs, buildWithdrawFailedIxs, findAttestationPda } from '../../lib/solana';
 import { formatUsdc } from '../../lib/constants';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { getProgram } from '../../lib/program';
+import type { CheckinAttestation } from '../../lib/types';
+import { AttestationState } from '../../lib/types';
 
 export default function StreakDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,20 +27,90 @@ export default function StreakDetailPage() {
   const address = publicKey?.toBase58() ?? null;
 
   const { streak, loading: streakLoading, error: streakError } = useStreak(id ?? null);
-  const { participant: userParticipant } = useParticipant(id ?? null, address);
+  const { participant: userParticipant, refetch: refetchParticipant } = useParticipant(id ?? null, address);
   const { participants } = useStreakParticipants(id ?? null);
-  const { attestations } = useStreakAttestations(id ?? null);
   const { sendTransaction, sending } = useSolanaTransaction();
 
   const now = Date.now() / 1000;
   const started = streak ? streak.startTimestamp <= now : false;
-  const daysPassed = streak && started
-    ? Math.min(Math.floor((now - streak.startTimestamp) / 86400) + 1, streak.durationDays)
-    : 0;
+  const dayIndex = streak && started ? Math.floor((now - streak.startTimestamp) / 86400) : 0;
+
+  const [attestations, setAttestations] = useState<CheckinAttestation[]>([]);
+  const [attestationsLoading, setAttestationsLoading] = useState(false);
+
+  // Build the full participant list: always include the connected user's participant
+  // so their attestations show even if useStreakParticipants filter fails.
+  const allParticipants = useMemo(() => {
+    if (!userParticipant) return participants;
+    const has = participants.some((p) => p.pubkey === userParticipant.pubkey);
+    return has ? participants : [userParticipant, ...participants];
+  }, [participants, userParticipant]);
+
+  const fetchAttestations = useCallback(async () => {
+    if (allParticipants.length === 0) return;
+    setAttestationsLoading(true);
+    try {
+      const pdas = allParticipants.flatMap((p) =>
+        Array.from({ length: dayIndex + 1 }, (_, day) =>
+          findAttestationPda(new PublicKey(p.pubkey), day)[0]
+        )
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raws: (any | null)[] = await (getProgram().account['checkinAttestation'].fetchMultiple(pdas) as Promise<(any | null)[]>);
+      const results: CheckinAttestation[] = [];
+      raws.forEach((raw, i) => {
+        if (!raw) return;
+        const pda = pdas[i];
+        results.push({
+          pubkey: pda.toBase58(),
+          participant: raw.participant.toBase58(),
+          streak: raw.streak.toBase58(),
+          dayIndex: raw.dayIndex,
+          photoHash: Array.from(raw.photoHash as number[]),
+          phash: Number((raw.phash as { toString: () => string }).toString()),
+          verifierSignature: Array.from(raw.verifierSignature as number[]),
+          verdict: raw.verdict,
+          reasonHash: Array.from(raw.reasonHash as number[]),
+          createdAt: (raw.createdAt as { toNumber: () => number }).toNumber(),
+          disputeWindowEnds: (raw.disputeWindowEnds as { toNumber: () => number }).toNumber(),
+          state: (() => {
+            const key = Object.keys(raw.state as object)[0];
+            const m: Record<string, AttestationState> = {
+              pending: AttestationState.Pending, disputed: AttestationState.Disputed,
+              finalized: AttestationState.Finalized, overturned: AttestationState.Overturned,
+            };
+            return m[key] ?? AttestationState.Pending;
+          })(),
+          disputer: raw.disputer ? (raw.disputer as PublicKey).toBase58() : null,
+          disputeBond: (raw.disputeBond as { toNumber: () => number }).toNumber(),
+          finalVerdict: raw.finalVerdict ?? null,
+          bump: raw.bump,
+        });
+      });
+      setAttestations(results.sort((a, b) => b.dayIndex - a.dayIndex));
+    } catch (e) {
+      console.error('fetchAttestations failed:', e);
+    } finally {
+      setAttestationsLoading(false);
+    }
+  }, [allParticipants, dayIndex]);
+
+  useEffect(() => { void fetchAttestations(); }, [fetchAttestations]);
+
+  async function handleFinalized() {
+    await refetchParticipant();
+    await fetchAttestations();
+  }
+  const daysPassed = Math.min(dayIndex + 1, streak?.durationDays ?? 1);
   const progress = streak ? Math.round((daysPassed / streak.durationDays) * 100) : 0;
   const streakEnded = streak ? now >= streak.startTimestamp + streak.durationDays * 86400 : false;
-  const canJoin = !userParticipant && streak && participants.length < streak.maxParticipants;
-  const canCheckin = userParticipant?.isActive && started && !streakEnded;
+  const canJoin = !userParticipant && streak && streak.participantCount < streak.maxParticipants;
+  const todayIsFinalized = !!userParticipant && userParticipant.lastFinalizedDay >= dayIndex;
+  const checkedInToday = userParticipant && streak
+    ? todayIsFinalized ||
+      userParticipant.lastCheckinTimestamp >= streak.startTimestamp + dayIndex * 86400
+    : false;
+  const canCheckin = userParticipant?.isActive && started && !streakEnded && !checkedInToday;
   const canClaim = userParticipant?.isActive && !userParticipant.hasClaimed &&
     streakEnded && (userParticipant.currentStreak ?? 0) >= (streak?.durationDays ?? 999);
   const canWithdraw = userParticipant?.isActive && !userParticipant.hasClaimed &&
@@ -181,6 +255,17 @@ export default function StreakDetailPage() {
                   <span className="relative">Submit Day {daysPassed} Proof</span>
                 </Link>
               )}
+              {checkedInToday && !userParticipant?.hasClaimed && started && !streakEnded && (
+                todayIsFinalized ? (
+                  <span className="flex items-center gap-2 text-base font-bold text-green-400 bg-green-400/10 border border-green-400/30 px-6 py-3 rounded-xl">
+                    <Trophy size={18} /> Day {daysPassed} — Confirmed
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2 text-base font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-6 py-3 rounded-xl">
+                    <Clock size={18} /> Day {daysPassed} — Pending Attestation
+                  </span>
+                )
+              )}
               {canClaim && (
                 <button onClick={() => void handleClaim()} disabled={sending}
                   className="group relative overflow-hidden flex items-center gap-2 bg-orchid-500/10 border border-orchid-500 text-orchid-400 hover:bg-orchid-500/20 disabled:opacity-70 rounded-xl px-8 py-3.5 text-base font-bold transition-all hover:shadow-[0_0_20px_rgba(202,121,165,0.4)] active:scale-95">
@@ -228,16 +313,28 @@ export default function StreakDetailPage() {
                 Recent Network Attestations
                 <span className="flex size-2 animate-pulse rounded-full bg-green-400 shadow-[0_0_8px_#4ade80]"></span>
               </h2>
-              {attestations.length === 0 ? (
+              {attestationsLoading ? (
+                <div className="flex items-center justify-center gap-3 py-10 text-smoke-500">
+                  <Loader2 size={18} className="animate-spin text-orchid-500" />
+                  <span className="text-sm font-medium">Loading attestations…</span>
+                </div>
+              ) : attestations.length === 0 ? (
                 <div className="text-center py-10 bg-black/20 rounded-2xl border border-white/5">
                   <p className="text-smoke-500 font-medium">No check-ins submitted to the network yet.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {attestations.slice(0, 10).map((a) => (
-                    <AttestationCard key={a.pubkey} attestation={a} streakId={id}
-                      viewerAddress={address ?? undefined} participantAddress={userParticipant?.pubkey} />
-                  ))}
+                  {attestations.slice(0, 10).map((a) => {
+                    const submitter = allParticipants.find((p) => p.pubkey === a.participant);
+                    return (
+                      <AttestationCard key={a.pubkey} attestation={a} streakId={id}
+                        participantPda={a.participant}
+                        submitterWallet={submitter?.user}
+                        viewerAddress={address ?? undefined}
+                        participantAddress={userParticipant?.pubkey}
+                        onFinalized={() => void handleFinalized()} />
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -245,7 +342,7 @@ export default function StreakDetailPage() {
             <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 sm:p-8 shadow-xl">
               <h2 className="text-xl font-bold text-white mb-6">Protocol Leaderboard</h2>
               <div className="bg-black/20 border border-grape-400/20 rounded-2xl overflow-hidden">
-                <Leaderboard participants={participants} />
+                <Leaderboard participants={allParticipants} />
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { getProgram, getConnection } from './program';
-import { findParticipantPda, findStreakProofPda } from './solana';
+import { findParticipantPda, findAttestationPda, findStreakProofPda } from './solana';
 import { HabitType, AttestationState, type Streak, type Participant, type CheckinAttestation, type StreakProof } from './types';
 
 function decodeHabitType(raw: unknown): HabitType {
@@ -75,7 +75,7 @@ function rawToAttestation(pubkey: string, raw: any): CheckinAttestation {
     streak: raw.streak.toBase58(),
     dayIndex: raw.dayIndex,
     photoHash: Array.from(raw.photoHash as number[]),
-    phash: raw.phash.toNumber(),
+    phash: Number(raw.phash.toString()),
     verifierSignature: Array.from(raw.verifierSignature as number[]),
     verdict: raw.verdict,
     reasonHash: Array.from(raw.reasonHash as number[]),
@@ -137,7 +137,7 @@ export function useParticipant(streakPubkey: string | null, userAddress: string 
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const fetch = useCallback(async () => {
     if (!streakPubkey || !userAddress) { setParticipant(null); return; }
     setLoading(true);
     const [pda] = findParticipantPda(new PublicKey(streakPubkey), new PublicKey(userAddress));
@@ -150,7 +150,9 @@ export function useParticipant(streakPubkey: string | null, userAddress: string 
       .finally(() => setLoading(false));
   }, [streakPubkey, userAddress]);
 
-  return { participant, loading };
+  useEffect(() => { void fetch(); }, [fetch]);
+
+  return { participant, loading, refetch: fetch };
 }
 
 export function useStreakParticipants(streakPubkey: string | null) {
@@ -179,34 +181,50 @@ export function useStreakParticipants(streakPubkey: string | null) {
   return { participants, loading };
 }
 
-export function useStreakAttestations(streakPubkey: string | null) {
+// Fetches attestations for all participants in a streak by computing PDAs directly.
+// Derives attestation PDAs from known participants and fetches them via getMultipleAccounts.
+// Accepts participants from the caller to avoid a redundant second getProgramAccounts call.
+export function useStreakAttestations(
+  participants: Participant[],
+  currentDayIndex: number,
+) {
   const [attestations, setAttestations] = useState<CheckinAttestation[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (!streakPubkey) return;
+  const fetch = useCallback(async () => {
+    if (participants.length === 0) {
+      setAttestations([]);
+      return;
+    }
     setLoading(true);
-    getProgram()
-      .account['checkinAttestation'].all([
-        {
-          memcmp: {
-            offset: 8 + 32, // discriminator + participant pubkey → streak field at offset 40
-            bytes: streakPubkey,
-          },
-        },
-      ])
-      .then((accounts) => {
-        setAttestations(
-          accounts
-            .map((a) => rawToAttestation(a.publicKey.toBase58(), a.account))
-            .sort((a, b) => b.dayIndex - a.dayIndex)
-        );
+
+    const pdas: PublicKey[] = [];
+    const pubkeyStrs: string[] = [];
+    for (const p of participants) {
+      const participantPk = new PublicKey(p.pubkey);
+      for (let day = 0; day <= currentDayIndex; day++) {
+        const [attnPda] = findAttestationPda(participantPk, day);
+        pdas.push(attnPda);
+        pubkeyStrs.push(attnPda.toBase58());
+      }
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (getProgram().account['checkinAttestation'].fetchMultiple(pdas) as Promise<(any | null)[]>)
+      .then((raws) => {
+        const results: CheckinAttestation[] = [];
+        raws.forEach((raw, i) => {
+          if (raw) results.push(rawToAttestation(pubkeyStrs[i], raw));
+        });
+        setAttestations(results.sort((a, b) => b.dayIndex - a.dayIndex));
       })
       .catch(() => setAttestations([]))
       .finally(() => setLoading(false));
-  }, [streakPubkey]);
+  }, [participants, currentDayIndex]);
 
-  return { attestations, loading };
+  useEffect(() => { void fetch(); }, [fetch]);
+
+  return { attestations, loading, refetch: fetch };
 }
 
 export function useAttestation(pubkey: string | null) {
