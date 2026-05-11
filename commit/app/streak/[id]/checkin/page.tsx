@@ -56,7 +56,7 @@ export default function CheckinPage() {
         streakPubkey: id,
         dayIndex,
         verifierSignature: Buffer.from(result.verifier_signature, 'hex'),
-        attestationMessage: buildAttestationMessage(result, participantPubkey, id, dayIndex),
+        attestationMessage: buildAttestationMessage(result, address, id, dayIndex),
         photoHash: Buffer.from(result.photo_hash, 'hex'),
         phash: BigInt('0x' + result.phash),
         verdictTrue: true,
@@ -180,14 +180,14 @@ export default function CheckinPage() {
             {method === 'github' && streak.habitType === HabitType.Code ? (
               <GitHubVerifier
                 streakPubkey={id}
-                participantPubkey={participantPubkey ?? ''}
+                participantPubkey={address ?? ''}
                 dayIndex={dayIndex}
                 onVerified={(r) => void handleVerified(r)}
               />
             ) : (
               <PhotoVerifier
                 streakPubkey={id}
-                participantPubkey={participantPubkey ?? ''}
+                participantPubkey={address ?? ''}
                 dayIndex={dayIndex}
                 habitType={streak.habitType}
                 habitPrompt={streak.habitPrompt}
