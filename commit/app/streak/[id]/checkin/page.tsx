@@ -45,13 +45,14 @@ export default function CheckinPage() {
   })();
 
   async function handleVerified(result: VerifyCheckinResponse) {
-    if (!result.verifier_signature || !participantPubkey || !id) {
+    if (!result.verifier_signature || !participantPubkey || !id || !address) {
       toast.error('Missing data — please try again');
       return;
     }
     try {
       const ixs = await buildSubmitCheckinIxs({
         participantPubkey,
+        userPubkey: address,
         streakPubkey: id,
         dayIndex,
         verifierSignature: Buffer.from(result.verifier_signature, 'hex'),

@@ -94,6 +94,7 @@ export interface CreateStreakArgs {
 
 export interface SubmitCheckinArgs {
   participantPubkey: string;
+  userPubkey: string;
   streakPubkey: string;
   dayIndex: number;
   verifierSignature: Uint8Array;
@@ -199,6 +200,7 @@ export async function buildJoinStreakIxs(
  */
 export async function buildSubmitCheckinIxs(args: SubmitCheckinArgs): Promise<TransactionInstruction[]> {
   const participantPubkey = new PublicKey(args.participantPubkey);
+  const userPubkey = new PublicKey(args.userPubkey);
   const streakPubkey = new PublicKey(args.streakPubkey);
   const [attestationPda] = findAttestationPda(participantPubkey, args.dayIndex);
   const [phashRegistryPda] = findPhashRegistryPda(streakPubkey);
@@ -211,7 +213,7 @@ export async function buildSubmitCheckinIxs(args: SubmitCheckinArgs): Promise<Tr
     signature: Buffer.from(args.verifierSignature),
   });
 
-  const program = getProgram(args.participantPubkey);
+  const program = getProgram(args.userPubkey);
   const programIx = await program.methods
     .submitCheckinWithAttestation({
       dayIndex: args.dayIndex,
@@ -226,7 +228,7 @@ export async function buildSubmitCheckinIxs(args: SubmitCheckinArgs): Promise<Tr
       participant: participantPubkey,
       attestation: attestationPda,
       phashRegistry: phashRegistryPda,
-      participantUser: participantPubkey,
+      participantUser: userPubkey,
       instructionsSysvar: SYSVAR_INSTRUCTIONS_PUBKEY,
       systemProgram: SystemProgram.programId,
     })
