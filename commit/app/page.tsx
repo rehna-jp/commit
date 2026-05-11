@@ -144,8 +144,6 @@ export default function LandingPage() {
             >
               GitHub
             </a>
-            <span className="opacity-50">|</span>
-            <span className="text-smoke-700">Dev3pack Hackathon 2026</span>
           </div>
         </div>
       </footer>

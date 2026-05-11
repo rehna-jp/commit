@@ -1,10 +1,10 @@
-// POST /api/verify-counter — skeptical dispute re-verification via Kimi, same response shape
+// POST /api/verify-counter — skeptical dispute re-verification via Groq (Llama 4 Scout), same response shape
 import { NextRequest, NextResponse } from 'next/server';
 import { sha256, buildAttestationMessage, signAttestation, getVerifierPubkeyBytes, decodeBase58Pubkey } from '@/app/lib/attestation';
 import { computePhash, phashToHex } from '@/app/lib/phash';
 import { HABIT_PROMPTS, type HabitType } from '@/app/lib/habits';
 import { sanitizeHabitPrompt, injectHabitPrompt } from '@/app/lib/sanitize';
-import { verifyWithKimi } from '@/app/lib/moonshot';
+import { verifyWithGroq } from '@/app/lib/moonshot';
 import { withX402Payment, type RouteHandler } from '@/app/lib/x402-middleware';
 import bs58 from 'bs58';
 
@@ -60,7 +60,7 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     prompt = injectHabitPrompt(prompt, habit_prompt);
   }
 
-  const { verdict, reason } = await verifyWithKimi(prompt, photo_base64);
+  const { verdict, reason } = await verifyWithGroq(prompt, photo_base64);
 
   if (!verdict) {
     return NextResponse.json({ verdict: false, reason, verifier_signature: null });
