@@ -123,11 +123,14 @@ export default function DashboardPage() {
               {myStreaks.map((streak) => {
                 const participant = participants.find((p) => p.streak === streak.pubkey);
                 const started = streak.startTimestamp <= now;
-                const daysPassed = started
-                  ? Math.floor((now - streak.startTimestamp) / 86400) + 1
-                  : 0;
+                const dayIndex = started ? Math.floor((now - streak.startTimestamp) / 86400) : 0;
+                const daysPassed = dayIndex + 1;
+                // Treat as checked-in if finalized OR if a pending attestation was submitted today
+                // (lastCheckinTimestamp is updated by submit_checkin_with_attestation; lastFinalizedDay
+                // only updates after the 24h dispute window via finalize_checkin)
                 const checkedInToday = participant
-                  ? participant.lastFinalizedDay >= daysPassed - 1
+                  ? participant.lastFinalizedDay >= dayIndex ||
+                    participant.lastCheckinTimestamp >= streak.startTimestamp + dayIndex * 86400
                   : false;
                 return (
                   <StreakCard
