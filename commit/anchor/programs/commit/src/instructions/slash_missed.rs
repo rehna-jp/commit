@@ -1,8 +1,7 @@
-// Permissionless: slash a participant who missed a check-in after the 48h grace period.
+// Permissionless: slash a participant who missed a check-in once the day has fully elapsed.
 use anchor_lang::prelude::*;
 use crate::state::{Participant, Streak};
 use crate::errors::CommitError;
-use crate::SLASH_GRACE_PERIOD_SECONDS;
 
 #[derive(Accounts)]
 pub struct SlashMissed<'info> {
@@ -28,20 +27,23 @@ pub fn handler(ctx: Context<SlashMissed>) -> Result<()> {
     require!(participant.is_active, CommitError::ParticipantInactive);
 
     let now = Clock::get()?.unix_timestamp;
-    let expected_day = ((now - streak.start_timestamp) / 86400) as u16;
+    let expected_day = ((now - streak.start_timestamp) / 86_400) as u16;
 
-    // Must have missed at least one full day
+    // current_streak = total days finalized; expected_day = total days elapsed.
+    // A gap means at least one day was missed, even if the participant later resumed.
     require!(
-        participant.last_finalized_day < expected_day.saturating_sub(1),
+        participant.current_streak < expected_day,
         CommitError::TooEarlyToSlash
     );
 
-    // Must be past the 48h grace period since last check-in (or never checked in)
-    let last_ts = participant.last_checkin_timestamp;
-    require!(
-        last_ts == 0 || now - last_ts > SLASH_GRACE_PERIOD_SECONDS,
-        CommitError::TooEarlyToSlash
-    );
+    // Slash callable once the next un-checked day has fully elapsed.
+    // current_streak is the count of finalized days, so the first missed slot is
+    // day index current_streak, which ends at startTimestamp + (current_streak + 1) * 86400.
+    let slash_eligible_from = streak
+        .start_timestamp
+        .checked_add((participant.current_streak as i64 + 1) * 86_400)
+        .ok_or(CommitError::Overflow)?;
+    require!(now >= slash_eligible_from, CommitError::TooEarlyToSlash);
 
     let slash = participant
         .stake_locked
@@ -54,6 +56,13 @@ pub fn handler(ctx: Context<SlashMissed>) -> Result<()> {
     participant.stake_locked = participant
         .stake_locked
         .checked_sub(slash)
+        .ok_or(CommitError::Overflow)?;
+
+    // Advance current_streak to mark this missed day as penalised.
+    // Prevents double-slashing the same missed slot.
+    participant.current_streak = participant
+        .current_streak
+        .checked_add(1)
         .ok_or(CommitError::Overflow)?;
 
     if participant.stake_locked == 0 {

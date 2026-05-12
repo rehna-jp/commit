@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use anchor_lang::solana_program::sysvar;
 use crate::state::{AttestationState, CheckinAttestation, Participant, PhashRegistry, Streak};
 use crate::errors::CommitError;
-use crate::utils::{parse_attestation_msg, verify_ed25519_ix, ATTESTATION_MSG_LEN};
+use crate::utils::{parse_attestation_msg, verify_ed25519_ix};
 use crate::{DISPUTE_WINDOW_SECONDS, PHASH_HAMMING_THRESHOLD, VERIFIER_PUBKEY};
 
 #[derive(AnchorSerialize, AnchorDeserialize)]
@@ -64,7 +64,7 @@ pub fn handler(ctx: Context<SubmitCheckinWithAttestation>, args: SubmitCheckinAr
     require!(args.verdict, CommitError::VerdictWasReject);
 
     // Verify the expected day index matches elapsed time
-    let elapsed_days = ((Clock::get()?.unix_timestamp - streak.start_timestamp) / 86400) as u16;
+    let elapsed_days = ((Clock::get()?.unix_timestamp - streak.start_timestamp) / 86_400) as u16;
     require!(args.day_index == elapsed_days, CommitError::InvalidDayIndex);
 
     // Verify ed25519 instruction at index 0

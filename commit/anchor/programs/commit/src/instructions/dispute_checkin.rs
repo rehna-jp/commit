@@ -3,7 +3,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 use crate::state::{AttestationState, CheckinAttestation, Participant, Streak};
 use crate::errors::CommitError;
-use crate::DISPUTE_WINDOW_SECONDS;
+use crate::{DISPUTE_BOND_PERCENT, DISPUTE_WINDOW_SECONDS};
 
 #[derive(Accounts)]
 pub struct DisputeCheckin<'info> {
@@ -67,10 +67,11 @@ pub fn handler(ctx: Context<DisputeCheckin>) -> Result<()> {
         CommitError::DisputeWindowClosed
     );
 
-    // Bond = 10% of stake
     let dispute_bond = streak
         .stake_amount
-        .checked_div(10)
+        .checked_mul(DISPUTE_BOND_PERCENT)
+        .ok_or(CommitError::Overflow)?
+        .checked_div(100)
         .ok_or(CommitError::Overflow)?;
 
     token::transfer(

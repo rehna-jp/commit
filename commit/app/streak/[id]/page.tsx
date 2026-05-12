@@ -12,9 +12,10 @@ import { Leaderboard } from '../../components/Leaderboard';
 import { RewardPool } from '../../components/RewardPool';
 import { AttestationCard } from '../../components/AttestationCard';
 import { StakeWidget } from '../../components/StakeWidget';
+import { StakeHealthPanel } from '../../components/StakeHealthPanel';
 import { useStreak, useParticipant, useStreakParticipants } from '../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../lib/use-solana-tx';
-import { buildClaimRewardIxs, buildWithdrawFailedIxs, findAttestationPda } from '../../lib/solana';
+import { buildClaimRewardIxs, buildWithdrawFailedIxs, buildSlashMissedIxs, findAttestationPda } from '../../lib/solana';
 import { formatUsdc } from '../../lib/constants';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getProgram } from '../../lib/program';
@@ -45,6 +46,129 @@ export default function StreakDetailPage() {
     const has = participants.some((p) => p.pubkey === userParticipant.pubkey);
     return has ? participants : [userParticipant, ...participants];
   }, [participants, userParticipant]);
+
+  // Days (0-indexed) the connected user has a non-overturned attestation for
+  const myAttestedDays = useMemo(() => {
+    if (!userParticipant) return new Set<number>();
+    return new Set(
+      attestations
+        .filter(a => a.participant === userParticipant.pubkey && a.state !== AttestationState.Overturned)
+        .map(a => a.dayIndex)
+    );
+  }, [attestations, userParticipant]);
+
+  // Past days with no accepted attestation — used to power the slash history display
+  const missedDays = useMemo(() => {
+    if (!userParticipant || !started) return [];
+    const isEnded = streak ? dayIndex >= streak.durationDays : false;
+    const cutoff = isEnded ? (streak!.durationDays - 1) : dayIndex - 1;
+    if (cutoff < 0) return [];
+    return Array.from({ length: cutoff + 1 }, (_, i) => i).filter(d => !myAttestedDays.has(d));
+  }, [userParticipant, started, streak, dayIndex, myAttestedDays]);
+
+  // Estimate USDC flowing into the reward pool once all callable slash_missed txs execute.
+  // Slash is callable once the day after the last finalized day has fully elapsed:
+  // startTimestamp + (lastFinalizedDay + 2) * 86400 — mirrors updated slash_missed contract.
+  const pendingPoolContribution = useMemo(() => {
+    if (!streak) return 0;
+    const nowSec = Date.now() / 1000;
+    const currentDay = Math.floor((nowSec - streak.startTimestamp) / 86400);
+    const isEnded = currentDay >= streak.durationDays;
+    const cutoff = isEnded ? streak.durationDays - 1 : currentDay - 1;
+    if (cutoff < 0) return 0;
+
+    return allParticipants.reduce((poolTotal, p) => {
+      if (!p.isActive) return poolTotal;
+
+      // Slash callable once the first missed day slot has fully elapsed
+      const slashEligibleFrom = streak.startTimestamp + (p.currentStreak + 1) * 86400;
+      if (nowSec < slashEligibleFrom) return poolTotal;
+
+      // Gap between finalized days and elapsed days = number of pending slashes
+      if (p.currentStreak >= currentDay) return poolTotal;
+
+      const missedCount = currentDay - p.currentStreak;
+      if (missedCount <= 0) return poolTotal;
+
+      const projectedRemaining = Array.from({ length: missedCount }).reduce(
+        (bal: number) => bal - Math.floor(bal * streak.penaltyPercent / 100),
+        p.stakeLocked as number
+      );
+      return poolTotal + (p.stakeLocked - projectedRemaining);
+    }, 0);
+  }, [allParticipants, attestations, streak, dayIndex]);
+
+  // Slash the connected user's own missed days — only triggered by explicit button click.
+  async function handleApplyOwnSlash() {
+    if (!userParticipant || !streak || !publicKey) return;
+    const nowSec = Date.now() / 1000;
+    const currentDay = Math.floor((nowSec - streak.startTimestamp) / 86400);
+    const slashEligibleFrom = streak.startTimestamp + (userParticipant.currentStreak + 1) * 86400;
+    if (nowSec < slashEligibleFrom || userParticipant.currentStreak >= currentDay) return;
+
+    const streakPk = new PublicKey(streak.pubkey);
+    const participantPk = new PublicKey(userParticipant.pubkey);
+    const missedCount = currentDay - userParticipant.currentStreak;
+
+    for (let i = 0; i < missedCount; i++) {
+      try {
+        const ixs = await buildSlashMissedIxs(publicKey, streakPk, participantPk);
+        await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
+      } catch {
+        break;
+      }
+    }
+    await refetchParticipant();
+    await fetchAttestations();
+  }
+
+  // Slash OTHER participants who are overdue — opt-in keeper action.
+  const [slashingOthers, setSlashingOthers] = useState(false);
+  async function handleSlashOthers() {
+    if (!publicKey || !streak) return;
+    setSlashingOthers(true);
+    try {
+      const nowSec = Date.now() / 1000;
+      const currentDay = Math.floor((nowSec - streak.startTimestamp) / 86400);
+      const streakPk = new PublicKey(streak.pubkey);
+
+      for (const p of allParticipants) {
+        if (!p.isActive) continue;
+        if (userParticipant && p.pubkey === userParticipant.pubkey) continue;
+        const slashEligibleFrom = streak.startTimestamp + (p.currentStreak + 1) * 86400;
+        if (nowSec < slashEligibleFrom || p.currentStreak >= currentDay) continue;
+
+        const missedCount = currentDay - p.currentStreak;
+        const participantPk = new PublicKey(p.pubkey);
+        for (let i = 0; i < missedCount; i++) {
+          try {
+            const ixs = await buildSlashMissedIxs(publicKey, streakPk, participantPk);
+            await sendTransaction(ixs, {});
+          } catch { break; }
+        }
+      }
+      await refetchParticipant();
+      await fetchAttestations();
+      toast.success('Overdue slashes applied.');
+    } catch {
+      toast.error('Failed to slash some participants.');
+    } finally {
+      setSlashingOthers(false);
+    }
+  }
+
+  // Participants (excluding self) who are currently slash-eligible
+  const slashableOthers = useMemo(() => {
+    if (!streak) return 0;
+    const nowSec = Date.now() / 1000;
+    const currentDay = Math.floor((nowSec - streak.startTimestamp) / 86400);
+    return allParticipants.filter(p => {
+      if (!p.isActive) return false;
+      if (userParticipant && p.pubkey === userParticipant.pubkey) return false;
+      const eligible = streak.startTimestamp + (p.currentStreak + 1) * 86400;
+      return nowSec >= eligible && p.currentStreak < currentDay;
+    }).length;
+  }, [allParticipants, streak, userParticipant]);
 
   const fetchAttestations = useCallback(async () => {
     if (allParticipants.length === 0) return;
@@ -111,10 +235,15 @@ export default function StreakDetailPage() {
       userParticipant.lastCheckinTimestamp >= streak.startTimestamp + dayIndex * 86400
     : false;
   const canCheckin = userParticipant?.isActive && started && !streakEnded && !checkedInToday;
+  // Claim: must have enough credits AND have actually finalized the last day
   const canClaim = userParticipant?.isActive && !userParticipant.hasClaimed &&
-    streakEnded && (userParticipant.currentStreak ?? 0) >= (streak?.durationDays ?? 999);
+    streakEnded &&
+    (userParticipant.currentStreak ?? 0) >= (streak?.durationDays ?? 999) &&
+    (userParticipant.lastFinalizedDay + 1) >= (streak?.durationDays ?? 999);
+  // Withdraw: didn't finalize the last day (mirrors contract lastFinalizedDay check)
   const canWithdraw = userParticipant?.isActive && !userParticipant.hasClaimed &&
-    streakEnded && (userParticipant.currentStreak ?? 0) < (streak?.durationDays ?? 999);
+    streakEnded &&
+    (userParticipant.lastFinalizedDay + 1) < (streak?.durationDays ?? 0);
 
   async function handleClaim() {
     if (!publicKey || !id) return;
@@ -297,13 +426,13 @@ export default function StreakDetailPage() {
                 {canJoin ? (
                   <StakeWidget streak={streak} userAddress={address ?? undefined} onJoined={() => {}} />
                 ) : userParticipant ? (
-                  <div className="bg-black/20 border border-green-400/20 rounded-2xl p-5 flex items-center gap-3">
-                    <span className="inline-block size-2.5 rounded-full bg-green-400 animate-pulse shrink-0" />
-                    <div>
-                      <p className="text-sm font-bold text-white">You are a participant</p>
-                      <p className="text-xs text-smoke-500 mt-0.5">Your stake of {formatUsdc(userParticipant.stakeLocked)} USDC is locked in escrow</p>
-                    </div>
-                  </div>
+                  <StakeHealthPanel
+                    participant={userParticipant}
+                    streak={streak}
+                    missedDays={missedDays}
+                    onApplySlash={() => void handleApplyOwnSlash()}
+                    applying={sending}
+                  />
                 ) : null}
               </div>
             )}
@@ -340,7 +469,19 @@ export default function StreakDetailPage() {
             </div>
             
             <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 sm:p-8 shadow-xl">
-              <h2 className="text-xl font-bold text-white mb-6">Protocol Leaderboard</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-medium text-white">Protocol Leaderboard</h2>
+                {connected && slashableOthers > 0 && (
+                  <button
+                    onClick={() => void handleSlashOthers()}
+                    disabled={slashingOthers || sending}
+                    className="flex items-center gap-1.5 text-xs font-medium text-red-400 border border-red-400/30 bg-red-400/10 hover:bg-red-400/20 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50"
+                  >
+                    {slashingOthers ? <Loader2 size={12} className="animate-spin" /> : null}
+                    Slash {slashableOthers} overdue participant{slashableOthers !== 1 ? 's' : ''}
+                  </button>
+                )}
+              </div>
               <div className="bg-black/20 border border-grape-400/20 rounded-2xl overflow-hidden">
                 <Leaderboard participants={allParticipants} />
               </div>
@@ -349,7 +490,7 @@ export default function StreakDetailPage() {
 
           <div className="space-y-6">
             <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-6 shadow-xl">
-              <RewardPool streak={streak} />
+              <RewardPool streak={streak} pendingPoolContribution={pendingPoolContribution} />
             </div>
 
             {streak.habitPrompt && (

@@ -58,9 +58,11 @@ pub fn handler(ctx: Context<WithdrawFailed>) -> Result<()> {
         CommitError::StreakNotEnded,
     );
 
-    // Must not have completed — completers must use claim_reward
+    // Must not have completed — completers must use claim_reward.
+    // Use lastFinalizedDay to check completion: if the last day was never finalized
+    // the participant cannot claim, regardless of slash-bumped currentStreak.
     require!(
-        (participant.current_streak as u8) < streak.duration_days,
+        (participant.last_finalized_day as u16 + 1) < streak.duration_days as u16,
         CommitError::StreakComplete,
     );
 
