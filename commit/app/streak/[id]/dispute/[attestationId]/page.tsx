@@ -11,7 +11,7 @@ import { DisputeButton } from '../../../../components/DisputeButton';
 import { useAttestation, useStreak, useParticipant } from '../../../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../../../lib/use-solana-tx';
 import { buildDisputeCheckinIxs, buildResolveDisputeIxs, buildFinalizeCheckinIxs } from '../../../../lib/solana';
-import { AttestationState } from '../../../../lib/types';
+import { AttestationState, HabitType } from '../../../../lib/types';
 import { formatUsdc, DISPUTE_BOND_BPS, DEVNET_MODE } from '../../../../lib/constants';
 import type { VerifyCheckinResponse } from '../../../../lib/types';
 
@@ -42,6 +42,8 @@ export default function DisputePage() {
   const [counterResult, setCounterResult] = useState<VerifyCheckinResponse | null>(null);
   const [resolving, setResolving] = useState(false);
   const [disputePhoto, setDisputePhoto] = useState<string | null>(null);
+  const [disputeMethod, setDisputeMethod] = useState<'photo' | 'github'>('photo');
+  const [githubUsername, setGithubUsername] = useState('');
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now() / 1000), DEVNET_MODE ? 1_000 : 10_000);
@@ -94,33 +96,58 @@ export default function DisputePage() {
 
   async function handleResolve() {
     if (!address || !id || !attestation || !streak) return;
-    if (!disputePhoto) {
+
+    // Validate inputs before calling APIs
+    if (disputeMethod === 'github' && !githubUsername.trim()) {
+      toast.error('Enter the GitHub username used for the original check-in');
+      return;
+    }
+    if (disputeMethod === 'photo' && !disputePhoto) {
       toast.error('Upload the original check-in photo first');
       return;
     }
+
     setResolving(true);
     try {
-      // Step 1: Get counter-attestation from API using the original photo
-      const habitLabels = ['Code', 'Read', 'Write', 'Design', 'Gym'];
-      const res = await fetch('/api/verify-counter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          participant_pubkey: attestation.participant,
-          streak_pubkey: id,
-          day_index: attestation.dayIndex,
-          habit_type: habitLabels[streak.habitType],
-          habit_prompt: streak.habitPrompt,
-          photo_base64: disputePhoto,
-        }),
-      });
-      const data = (await res.json()) as VerifyCheckinResponse;
+      let data: VerifyCheckinResponse;
+
+      if (disputeMethod === 'github') {
+        // GitHub check-in: re-run verify-github with the same username.
+        // The event ID is deterministic so it reproduces the same photo_hash.
+        const res = await fetch('/api/verify-github', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            participant_pubkey: attestation.participant,
+            streak_pubkey: id,
+            day_index: attestation.dayIndex,
+            github_username: githubUsername.trim(),
+          }),
+        });
+        data = (await res.json()) as VerifyCheckinResponse;
+      } else {
+        // Photo check-in: use the stricter counter prompt
+        const habitLabels = ['Code', 'Read', 'Write', 'Design', 'Gym'];
+        const res = await fetch('/api/verify-counter', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            participant_pubkey: attestation.participant,
+            streak_pubkey: id,
+            day_index: attestation.dayIndex,
+            habit_type: habitLabels[streak.habitType],
+            habit_prompt: streak.habitPrompt,
+            photo_base64: disputePhoto,
+          }),
+        });
+        data = (await res.json()) as VerifyCheckinResponse;
+      }
 
       if (!data.verifier_signature) {
+        setCounterResult(data);
         toast.error(data.verdict === false
           ? 'Counter-review: check-in rejected — dispute upheld'
           : 'Counter-review could not produce a signature');
-        setCounterResult(data);
         return;
       }
 
@@ -270,38 +297,81 @@ export default function DisputePage() {
             {attestation.state === AttestationState.Disputed && (
               <div className="space-y-3">
                 <p className="text-sm text-zinc-500 dark:text-smoke-600">
-                  A dispute is pending. The original check-in photo is needed to run the counter-AI review.
-                  If you are the participant, upload your original photo — the AI will re-verify it with a stricter prompt.
+                  A dispute is pending. To resolve it, the original proof must be re-verified with a stricter review.
+                  If you are the participant, provide the same proof used for the original check-in.
                 </p>
 
-                <div>
-                  <label className="block text-xs font-medium text-zinc-500 dark:text-smoke-600 mb-1.5">
-                    Original check-in photo
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = (ev) => {
-                        const result = ev.target?.result as string;
-                        // strip the data URI prefix, keep only base64
-                        setDisputePhoto(result.split(',')[1] ?? null);
-                      };
-                      reader.readAsDataURL(file);
-                    }}
-                    className="block w-full text-xs text-zinc-500 dark:text-smoke-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-grape-500/10 file:text-grape-400 hover:file:bg-grape-500/20 cursor-pointer"
-                  />
-                  {disputePhoto && (
-                    <p className="text-[11px] text-green-600 dark:text-green-400 mt-1">Photo loaded — ready to submit.</p>
-                  )}
-                </div>
+                {/* Method selector — only for Code habit which supports both */}
+                {streak?.habitType === HabitType.Code && (
+                  <div className="flex gap-2 bg-black/20 rounded-lg p-1 border border-white/5">
+                    {(['github', 'photo'] as const).map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setDisputeMethod(m)}
+                        className={`flex-1 rounded-md py-1.5 text-xs font-medium capitalize transition-all ${
+                          disputeMethod === m
+                            ? 'bg-grape-500 text-white'
+                            : 'text-zinc-500 dark:text-smoke-600 hover:text-white'
+                        }`}
+                      >
+                        {m === 'github' ? 'GitHub' : 'Photo'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* GitHub input */}
+                {disputeMethod === 'github' && (
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-smoke-600 mb-1.5">
+                      GitHub username used for original check-in
+                    </label>
+                    <input
+                      type="text"
+                      value={githubUsername}
+                      onChange={(e) => setGithubUsername(e.target.value)}
+                      placeholder="e.g. rehna-p"
+                      className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-smoke-600 focus:outline-none focus:border-grape-400/40"
+                    />
+                    <p className="text-[11px] text-zinc-500 dark:text-smoke-600 mt-1">
+                      The same GitHub activity must still be visible in your public events feed.
+                    </p>
+                  </div>
+                )}
+
+                {/* Photo upload */}
+                {disputeMethod === 'photo' && (
+                  <div>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-smoke-600 mb-1.5">
+                      Original check-in photo
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => {
+                          const result = ev.target?.result as string;
+                          setDisputePhoto(result.split(',')[1] ?? null);
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                      className="block w-full text-xs text-zinc-500 dark:text-smoke-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-grape-500/10 file:text-grape-400 hover:file:bg-grape-500/20 cursor-pointer"
+                    />
+                    {disputePhoto && (
+                      <p className="text-[11px] text-green-600 dark:text-green-400 mt-1">Photo loaded — ready to submit.</p>
+                    )}
+                    <p className="text-[11px] text-zinc-500 dark:text-smoke-600 mt-1">
+                      Must be the exact original photo — a different image will fail the on-chain hash check.
+                    </p>
+                  </div>
+                )}
 
                 <button
                   onClick={() => void handleResolve()}
-                  disabled={resolving || sending || !disputePhoto}
+                  disabled={resolving || sending || (disputeMethod === 'photo' && !disputePhoto) || (disputeMethod === 'github' && !githubUsername.trim())}
                   className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 rounded-lg px-5 py-2.5 text-sm font-medium w-full sm:w-auto justify-center"
                 >
                   {(resolving || sending) && <Loader2 size={14} className="animate-spin" />}
