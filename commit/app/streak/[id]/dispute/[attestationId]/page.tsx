@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useWallet } from '@/app/lib/wallet-context';
 import { PublicKey } from '@solana/web3.js';
@@ -16,10 +16,10 @@ import { formatUsdc, DISPUTE_BOND_BPS, DEVNET_MODE } from '../../../../lib/const
 import type { VerifyCheckinResponse } from '../../../../lib/types';
 
 const STATE_LABELS: Record<AttestationState, string> = {
-  [AttestationState.Pending]: 'Pending',
-  [AttestationState.Disputed]: 'Disputed',
-  [AttestationState.Finalized]: 'Finalized',
-  [AttestationState.Overturned]: 'Overturned',
+  [AttestationState.Pending]: 'Awaiting dispute window',
+  [AttestationState.Disputed]: 'Under dispute',
+  [AttestationState.Finalized]: 'Accepted',
+  [AttestationState.Overturned]: 'Rejected — participant slashed',
 };
 
 function formatCountdown(s: number): string {
@@ -39,8 +39,10 @@ export default function DisputePage() {
   const address = publicKey?.toBase58() ?? null;
 
   const [now, setNow] = useState(Date.now() / 1000);
+  const router = useRouter();
   const [counterResult, setCounterResult] = useState<VerifyCheckinResponse | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [resolved, setResolved] = useState<{ verdict: boolean } | null>(null);
   const [disputePhoto, setDisputePhoto] = useState<string | null>(null);
   const [disputeMethod, setDisputeMethod] = useState<'photo' | 'github'>('photo');
   const [githubUsername, setGithubUsername] = useState('');
@@ -145,21 +147,19 @@ export default function DisputePage() {
 
       if (!data.verifier_signature) {
         setCounterResult(data);
-        toast.error(data.verdict === false
-          ? 'Counter-review: check-in rejected — dispute upheld'
-          : 'Counter-review could not produce a signature');
+        toast.error(
+          disputeMethod === 'github'
+            ? 'No qualifying GitHub activity found — check the username is correct and you have recent commits.'
+            : 'Could not verify the photo — make sure it is the exact original image.'
+        );
         return;
       }
 
       setCounterResult(data);
-      toast.info(`Counter review: ${data.verdict ? 'Check-in upheld' : 'Check-in overturned'}`);
 
-      // Step 2: Build counter attestation message (171 bytes)
+      // Build and submit the resolve_dispute transaction
       const counterMsg = buildCounterAttestationMessage(data, attestation.participant, id, attestation.dayIndex);
-
-      // Step 3: Send resolve_dispute transaction
       const resolver = new PublicKey(address!);
-      const targetParticipant = new PublicKey(attestation.participant);
       const disputer = attestation.disputer ? new PublicKey(attestation.disputer) : resolver;
 
       const ixs = await buildResolveDisputeIxs({
@@ -174,9 +174,11 @@ export default function DisputePage() {
         counterAttestationMessage: counterMsg,
       });
       await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
-      toast.success('Dispute resolved on-chain!');
+
+      // Show outcome screen instead of staying on the same page
+      setResolved({ verdict: data.verdict });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Resolution failed');
+      toast.error(err instanceof Error ? err.message : 'Resolution failed — please try again');
     } finally {
       setResolving(false);
     }
@@ -199,6 +201,45 @@ export default function DisputePage() {
         <Navbar />
         <div className="flex flex-col items-center justify-center pt-32 px-6 text-center">
           <p className="text-smoke-500">Attestation not found.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Outcome screen shown after dispute is resolved on-chain
+  if (resolved) {
+    return (
+      <div className="min-h-screen bg-[#07050d] text-white flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className={`max-w-md w-full rounded-3xl border p-10 text-center shadow-2xl ${
+            resolved.verdict
+              ? 'bg-green-400/5 border-green-400/20'
+              : 'bg-red-400/5 border-red-400/20'
+          }`}>
+            {resolved.verdict ? (
+              <CheckCircle size={56} className="text-green-400 mx-auto mb-6" />
+            ) : (
+              <XCircle size={56} className="text-red-400 mx-auto mb-6" />
+            )}
+
+            <h2 className="text-2xl font-medium text-white mb-3">
+              {resolved.verdict ? 'Check-in confirmed' : 'Check-in rejected'}
+            </h2>
+
+            <p className="text-sm text-smoke-500 mb-6 leading-relaxed">
+              {resolved.verdict
+                ? 'The AI re-reviewed the proof and confirmed it was valid. The dispute failed — the disputer loses their bond, which goes to you.'
+                : 'The AI re-reviewed the proof and could not confirm it. Your stake has been slashed and the disputer receives their bond back plus a bounty.'}
+            </p>
+
+            <button
+              onClick={() => router.push(`/streak/${id}`)}
+              className="bg-grape-500 text-white hover:bg-grape-600 rounded-xl px-6 py-3 text-sm font-medium transition-colors"
+            >
+              Back to Streak
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -244,12 +285,12 @@ export default function DisputePage() {
           )}
           {attestation.state === AttestationState.Finalized && (
             <div className="flex items-center gap-1.5 text-sm text-green-700 bg-green-50 rounded-lg px-3 py-2">
-              <CheckCircle size={14} /> Finalized — check-in accepted
+              <CheckCircle size={14} /> Check-in accepted — no dispute was raised in time
             </div>
           )}
           {attestation.state === AttestationState.Overturned && (
             <div className="flex items-center gap-1.5 text-sm text-zinc-600 bg-zinc-100 rounded-lg px-3 py-2">
-              <XCircle size={14} /> Overturned — participant slashed
+              <XCircle size={14} /> Check-in rejected — the dispute succeeded and the participant was slashed
             </div>
           )}
         </div>
@@ -266,8 +307,9 @@ export default function DisputePage() {
             {canDispute && (
               <div>
                 <p className="text-xs text-zinc-500 dark:text-smoke-600 mb-3">
-                  Bond: <span className="font-mono text-grape-500">{formatUsdc(bondAmount)} USDC</span> (10% of stake).
-                  Win = bond back + 30% bounty. Lose = bond forfeited.
+                  You&apos;ll stake <span className="font-mono text-grape-500">{formatUsdc(bondAmount)} USDC</span> as a bond.
+                  If the AI agrees the check-in was invalid, you get your bond back plus a 30% reward from the slash.
+                  If the check-in was valid, you lose your bond.
                 </p>
                 <DisputeButton
                   streakId={id}
@@ -281,7 +323,7 @@ export default function DisputePage() {
             {canFinalize && (
               <div>
                 <p className="text-sm text-zinc-500 dark:text-smoke-600 mb-3">
-                  The dispute window has closed with no challenges. Anyone can finalize this check-in now.
+                  Nobody challenged this check-in in time. Click below to officially confirm it on-chain.
                 </p>
                 <button
                   onClick={() => void handleFinalize()}
@@ -297,8 +339,7 @@ export default function DisputePage() {
             {attestation.state === AttestationState.Disputed && (
               <div className="space-y-3">
                 <p className="text-sm text-zinc-500 dark:text-smoke-600">
-                  A dispute is pending. To resolve it, the original proof must be re-verified with a stricter review.
-                  If you are the participant, provide the same proof used for the original check-in.
+                  Someone has challenged this check-in. To settle it, re-submit the original proof — the AI will take a second, stricter look. If it passes, the dispute fails and you keep your stake. If it fails, you get slashed.
                 </p>
 
                 {/* Method selector — only for Code habit which supports both */}
@@ -377,10 +418,10 @@ export default function DisputePage() {
                   {(resolving || sending) && <Loader2 size={14} className="animate-spin" />}
                   Run Counter-Review &amp; Resolve
                 </button>
-                {counterResult && (
-                  <div className={`mt-3 rounded-xl p-3 text-sm ${counterResult.verdict ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                    <p className="font-medium">{counterResult.verdict ? 'Check-in upheld' : 'Check-in overturned'}</p>
-                    <p className="text-xs mt-0.5 opacity-80">{counterResult.reason}</p>
+                {counterResult && !counterResult.verifier_signature && (
+                  <div className="mt-3 rounded-xl p-3 text-sm bg-red-50 text-red-700">
+                    <p className="font-medium">Proof not accepted</p>
+                    <p className="text-xs mt-0.5 opacity-80">{counterResult.reason ?? 'Could not verify the submitted proof.'}</p>
                   </div>
                 )}
               </div>
