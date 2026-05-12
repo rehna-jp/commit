@@ -41,6 +41,7 @@ export default function DisputePage() {
   const [now, setNow] = useState(Date.now() / 1000);
   const [counterResult, setCounterResult] = useState<VerifyCheckinResponse | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [disputePhoto, setDisputePhoto] = useState<string | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now() / 1000), DEVNET_MODE ? 1_000 : 10_000);
@@ -93,9 +94,13 @@ export default function DisputePage() {
 
   async function handleResolve() {
     if (!address || !id || !attestation || !streak) return;
+    if (!disputePhoto) {
+      toast.error('Upload the original check-in photo first');
+      return;
+    }
     setResolving(true);
     try {
-      // Step 1: Get counter-attestation from API
+      // Step 1: Get counter-attestation from API using the original photo
       const habitLabels = ['Code', 'Read', 'Write', 'Design', 'Gym'];
       const res = await fetch('/api/verify-counter', {
         method: 'POST',
@@ -106,17 +111,20 @@ export default function DisputePage() {
           day_index: attestation.dayIndex,
           habit_type: habitLabels[streak.habitType],
           habit_prompt: streak.habitPrompt,
-          photo_base64: '',
+          photo_base64: disputePhoto,
         }),
       });
       const data = (await res.json()) as VerifyCheckinResponse;
-      setCounterResult(data);
 
       if (!data.verifier_signature) {
-        toast.error('Counter-review could not produce a signature');
+        toast.error(data.verdict === false
+          ? 'Counter-review: check-in rejected — dispute upheld'
+          : 'Counter-review could not produce a signature');
+        setCounterResult(data);
         return;
       }
 
+      setCounterResult(data);
       toast.info(`Counter review: ${data.verdict ? 'Check-in upheld' : 'Check-in overturned'}`);
 
       // Step 2: Build counter attestation message (171 bytes)
@@ -260,17 +268,44 @@ export default function DisputePage() {
             )}
 
             {attestation.state === AttestationState.Disputed && (
-              <div>
-                <p className="text-sm text-zinc-500 dark:text-smoke-600 mb-3">
-                  A dispute is pending. Trigger the counter-AI review to resolve it on-chain.
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-500 dark:text-smoke-600">
+                  A dispute is pending. The original check-in photo is needed to run the counter-AI review.
+                  If you are the participant, upload your original photo — the AI will re-verify it with a stricter prompt.
                 </p>
+
+                <div>
+                  <label className="block text-xs font-medium text-zinc-500 dark:text-smoke-600 mb-1.5">
+                    Original check-in photo
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        const result = ev.target?.result as string;
+                        // strip the data URI prefix, keep only base64
+                        setDisputePhoto(result.split(',')[1] ?? null);
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    className="block w-full text-xs text-zinc-500 dark:text-smoke-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-grape-500/10 file:text-grape-400 hover:file:bg-grape-500/20 cursor-pointer"
+                  />
+                  {disputePhoto && (
+                    <p className="text-[11px] text-green-600 dark:text-green-400 mt-1">Photo loaded — ready to submit.</p>
+                  )}
+                </div>
+
                 <button
                   onClick={() => void handleResolve()}
-                  disabled={resolving || sending}
-                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-70 rounded-lg px-5 py-2.5 text-sm font-medium w-full sm:w-auto justify-center"
+                  disabled={resolving || sending || !disputePhoto}
+                  className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 rounded-lg px-5 py-2.5 text-sm font-medium w-full sm:w-auto justify-center"
                 >
                   {(resolving || sending) && <Loader2 size={14} className="animate-spin" />}
-                  Resolve Dispute
+                  Run Counter-Review &amp; Resolve
                 </button>
                 {counterResult && (
                   <div className={`mt-3 rounded-xl p-3 text-sm ${counterResult.verdict ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
