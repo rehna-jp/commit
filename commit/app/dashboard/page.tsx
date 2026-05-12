@@ -129,7 +129,7 @@ export default function DashboardPage() {
                 // (lastCheckinTimestamp is updated by submit_checkin_with_attestation; lastFinalizedDay
                 // only updates after the 24h dispute window via finalize_checkin)
                 const checkedInToday = participant
-                  ? participant.lastFinalizedDay >= dayIndex ||
+                  ? (participant.currentStreak > 0 && participant.lastFinalizedDay >= dayIndex) ||
                     participant.lastCheckinTimestamp >= streak.startTimestamp + dayIndex * 86400
                   : false;
                 return (

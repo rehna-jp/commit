@@ -229,7 +229,11 @@ export default function StreakDetailPage() {
   const progress = streak ? Math.round((daysPassed / streak.durationDays) * 100) : 0;
   const streakEnded = streak ? now >= streak.startTimestamp + streak.durationDays * 86400 : false;
   const canJoin = !userParticipant && streak && streak.participantCount < streak.maxParticipants;
-  const todayIsFinalized = !!userParticipant && userParticipant.lastFinalizedDay >= dayIndex;
+  // currentStreak > 0 guards against lastFinalizedDay=0 being mistaken for "Day 0 finalized"
+  // when the participant has never actually submitted anything (initial state is also 0).
+  const todayIsFinalized = !!userParticipant &&
+    userParticipant.currentStreak > 0 &&
+    userParticipant.lastFinalizedDay >= dayIndex;
   const checkedInToday = userParticipant && streak
     ? todayIsFinalized ||
       userParticipant.lastCheckinTimestamp >= streak.startTimestamp + dayIndex * 86400
