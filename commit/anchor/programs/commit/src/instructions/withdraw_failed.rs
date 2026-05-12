@@ -45,8 +45,8 @@ pub fn handler(ctx: Context<WithdrawFailed>) -> Result<()> {
     let streak = &ctx.accounts.streak;
     let participant = &ctx.accounts.participant;
 
-    require!(participant.is_active, CommitError::ParticipantInactive);
     require!(!participant.has_claimed, CommitError::AlreadyClaimed);
+    require!(participant.is_active, CommitError::ParticipantInactive);
 
     // Streak must have fully elapsed before withdrawing
     let streak_end = streak
