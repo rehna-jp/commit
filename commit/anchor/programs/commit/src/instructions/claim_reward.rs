@@ -5,9 +5,8 @@ use anchor_spl::associated_token::{self, AssociatedToken, Create};
 use anchor_spl::token::{self, Mint as SplMint, Token, TokenAccount, Transfer};
 use anchor_spl::token_2022::Token2022;
 use spl_token_2022::{
-    extension::{metadata_pointer, ExtensionType},
+    extension::metadata_pointer,
     instruction as token_2022_ix,
-    state::Mint as T22Mint,
 };
 use spl_token_metadata_interface::instruction as metadata_ix;
 use crate::state::{HabitType, Participant, Streak, StreakProof};
@@ -79,8 +78,11 @@ pub fn handler(ctx: Context<ClaimReward>) -> Result<()> {
 
     require!(participant.is_active, CommitError::ParticipantInactive);
     require!(!participant.has_claimed, CommitError::AlreadyClaimed);
+    // current_streak counts finalized days + slash credits. Require both enough credits
+    // AND that the last day was actually finalized — prevents slash-to-completion exploit.
     require!(
-        participant.current_streak >= streak.duration_days as u16,
+        participant.current_streak >= streak.duration_days as u16
+            && participant.last_finalized_day as u16 + 1 >= streak.duration_days as u16,
         CommitError::StreakIncomplete
     );
 

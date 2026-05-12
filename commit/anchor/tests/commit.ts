@@ -966,10 +966,9 @@ describe("commit", () => {
       }
     });
 
-    it("rejects slash_missed before 48h grace period elapses", async () => {
-      // At START + ONE_DAY: elapsed=1, last_finalized_day=0, expected_day-1=0 → 0 < 0 is false
-      await setTs(ctx, START + ONE_DAY);
-      // Use alice as caller so the later successful-slash tx (using payer) has a distinct signature.
+    it("rejects slash_missed before the first day has elapsed", async () => {
+      // At START + 1: elapsed=0, current_streak=0, 0 < 0 is false → TooEarlyToSlash
+      await setTs(ctx, START + 1);
       const ixs = [
         await program.methods
           .slashMissed()
@@ -983,8 +982,8 @@ describe("commit", () => {
       await expectAnchorError(ctx, ixs, [alice], "TooEarlyToSlash");
     });
 
-    it("slashes alice after 48h+ with no check-in (permissionless)", async () => {
-      // elapsed=2, last_finalized_day=0 < 2-1=1 ✓; last_checkin_timestamp=0 ✓
+    it("slashes alice after one full day missed (permissionless)", async () => {
+      // elapsed=2, current_streak=0 < 2 ✓; slash_eligible_from = START + 86400, now > that ✓
       await setTs(ctx, START + TWO_DAYS + 1);
 
       const stakeBefore = (await program.account.participant.fetch(

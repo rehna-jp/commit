@@ -19,7 +19,6 @@ pub const DISPUTE_WINDOW_SECONDS: i64 = 60;           // 1 minute (devnet testin
 pub const DISPUTE_BOND_PERCENT: u64 = 10;             // 10% of stake
 pub const DISPUTE_BOUNTY_PERCENT: u64 = 30;           // 30% of slash amount
 pub const PHASH_HAMMING_THRESHOLD: u32 = 8;
-pub const SLASH_GRACE_PERIOD_SECONDS: i64 = 48 * 3600; // 48 hours
 
 #[program]
 pub mod commit {

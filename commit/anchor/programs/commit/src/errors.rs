@@ -32,7 +32,7 @@ pub enum CommitError {
     ParticipantInactive,
     #[msg("Streak not yet complete")]
     StreakIncomplete,
-    #[msg("Too early to slash — 48h must elapse")]
+    #[msg("Too early to slash — missed day has not fully elapsed yet")]
     TooEarlyToSlash,
     #[msg("Name too long (max 64)")]
     NameTooLong,
