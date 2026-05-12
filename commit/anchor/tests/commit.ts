@@ -32,11 +32,21 @@ import {
 } from "@solana/spl-token";
 import * as nacl from "tweetnacl";
 import { expect } from "chai";
+import * as fs from "fs";
+import * as path from "path";
+import bs58 from "bs58";
 
-// ─── Test verifier keypair ────────────────────────────────────────────────────
-// Seed = 0x2A repeated 32 times. Matching VERIFIER_PUBKEY in lib.rs.
-const VERIFIER_SEED = Buffer.alloc(32, 42);
-const verifierKp = nacl.sign.keyPair.fromSeed(VERIFIER_SEED);
+// ─── Verifier keypair — loaded from .env.local to match VERIFIER_PUBKEY in lib.rs ──
+function loadVerifierKeypair(): nacl.SignKeyPair {
+  const envPath = path.resolve(__dirname, "../../.env.local");
+  const raw = fs.readFileSync(envPath, "utf8");
+  const match = raw.match(/^VERIFIER_PRIVATE_KEY=(.+)$/m);
+  if (!match) throw new Error("VERIFIER_PRIVATE_KEY not found in .env.local");
+  const secretKey = bs58.decode(match[1].trim());
+  return nacl.sign.keyPair.fromSecretKey(secretKey);
+}
+
+const verifierKp = loadVerifierKeypair();
 const VERIFIER_PK = Buffer.from(verifierKp.publicKey); // 32 bytes
 
 const PROGRAM_ID = new PublicKey("3Gd8xHLKGjj8evBtwQUTnawSTwWdbeAxZmtVyxMPm29G");
@@ -1366,7 +1376,7 @@ describe("commit", () => {
           })
           .instruction(),
       ];
-      await expectAnchorError(ctx, ixs, [alice], "ParticipantInactive");
+      await expectAnchorError(ctx, ixs, [alice], "AlreadyClaimed");
     });
   });
 });
