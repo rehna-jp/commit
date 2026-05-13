@@ -11,6 +11,10 @@ interface GitHubRequest {
   streak_pubkey: string;
   day_index: number;
   github_username: string;
+  // Dispute resolution: hex-encoded photo_hash from the original attestation.
+  // When present, search events for the one that produced this hash instead of
+  // picking the most recent qualifying event.
+  expected_photo_hash?: string;
 }
 
 interface GitHubEvent {
@@ -46,36 +50,52 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { participant_pubkey, streak_pubkey, day_index, github_username } = body;
+  const { participant_pubkey, streak_pubkey, day_index, github_username, expected_photo_hash } = body;
 
   if (!participant_pubkey || !streak_pubkey || day_index === undefined || !github_username) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
   const octokit = new Octokit({ auth: process.env.GITHUB_APP_TOKEN });
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
 
-  let events: GitHubEvent[];
+  // Fetch up to 3 pages (300 events) when searching by hash so we can find
+  // the original event even if newer activity has pushed it down the feed.
+  // For normal check-ins, one page filtered to the last 24h is enough.
+  let events: GitHubEvent[] = [];
+  const pagesToFetch = expected_photo_hash ? 3 : 1;
   try {
-    const { data } = await octokit.rest.activity.listPublicEventsForUser({
-      username: github_username,
-      per_page: 100,
-    });
-    events = data as unknown as GitHubEvent[];
+    for (let page = 1; page <= pagesToFetch; page++) {
+      const { data } = await octokit.rest.activity.listPublicEventsForUser({
+        username: github_username,
+        per_page: 100,
+        page,
+      });
+      events = events.concat(data as unknown as GitHubEvent[]);
+      if ((data as unknown as GitHubEvent[]).length < 100) break; // no more pages
+    }
   } catch {
     return NextResponse.json(
       { verdict: false, reason: 'Could not fetch GitHub events for this user', verifier_signature: null }
     );
   }
 
-  const recentEvents = events.filter((e) => {
-    if (!e.created_at) return false;
-    return new Date(e.created_at).getTime() >= cutoff;
-  });
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  const candidateEvents = expected_photo_hash
+    ? events // dispute resolution: search all fetched events, no time filter
+    : events.filter((e) => e.created_at && new Date(e.created_at).getTime() >= cutoff);
 
   let qualifyingEventId: string | null = null;
 
-  for (const event of recentEvents) {
+  for (const event of candidateEvents) {
+    // When resolving a dispute, only accept the event whose hash matches the original attestation.
+    if (expected_photo_hash) {
+      const eventSeed = Buffer.from(event.id, 'utf-8');
+      const candidateHash = createHash('sha256').update(eventSeed).digest('hex');
+      if (candidateHash !== expected_photo_hash) continue;
+      // Hash matches — this is the original event regardless of type.
+      qualifyingEventId = event.id;
+      break;
+    }
     if (event.type === 'PushEvent') {
       const commits = event.payload.commits ?? [];
       if (commits.length === 0) continue;

@@ -114,8 +114,11 @@ export default function DisputePage() {
       let data: VerifyCheckinResponse;
 
       if (disputeMethod === 'github') {
-        // GitHub check-in: re-run verify-github with the same username.
-        // The event ID is deterministic so it reproduces the same photo_hash.
+        // Pass the original photo_hash so verify-github finds the exact event
+        // used in the original check-in, even if newer activity has since occurred.
+        const originalPhotoHash = Array.from(attestation.photoHash)
+          .map((b) => b.toString(16).padStart(2, '0'))
+          .join('');
         const res = await fetch('/api/verify-github', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -124,6 +127,7 @@ export default function DisputePage() {
             streak_pubkey: id,
             day_index: attestation.dayIndex,
             github_username: githubUsername.trim(),
+            expected_photo_hash: originalPhotoHash,
           }),
         });
         data = (await res.json()) as VerifyCheckinResponse;
@@ -149,7 +153,7 @@ export default function DisputePage() {
         setCounterResult(data);
         toast.error(
           disputeMethod === 'github'
-            ? 'No qualifying GitHub activity found — check the username is correct and you have recent commits.'
+            ? 'Original GitHub event not found — check the username is correct. If it has been pushed out of your public feed, contact the streak creator.'
             : 'Could not verify the photo — make sure it is the exact original image.'
         );
         return;
