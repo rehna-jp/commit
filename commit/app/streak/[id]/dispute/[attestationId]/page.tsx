@@ -11,6 +11,7 @@ import { DisputeButton } from '../../../../components/DisputeButton';
 import { useAttestation, useStreak, useParticipant } from '../../../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../../../lib/use-solana-tx';
 import { buildDisputeCheckinIxs, buildResolveDisputeIxs, buildFinalizeCheckinIxs } from '../../../../lib/solana';
+import { getProgram } from '../../../../lib/program';
 import { AttestationState, HabitType } from '../../../../lib/types';
 import { formatUsdc, DISPUTE_BOND_BPS, DEVNET_MODE } from '../../../../lib/constants';
 import type { VerifyCheckinResponse } from '../../../../lib/types';
@@ -111,6 +112,17 @@ export default function DisputePage() {
 
     setResolving(true);
     try {
+      // The attestation message encodes the wallet address at bytes 32-64 (not the Participant PDA).
+      // Fetch the participant account to get the original submitter's wallet address.
+      const rawParticipant = await getProgram()
+        .account['participant']
+        .fetchNullable(new PublicKey(attestation.participant)) as { user: PublicKey } | null;
+      if (!rawParticipant) {
+        toast.error('Could not load participant account — try again');
+        return;
+      }
+      const originalWallet = rawParticipant.user.toBase58();
+
       let data: VerifyCheckinResponse;
 
       if (disputeMethod === 'github') {
@@ -123,7 +135,7 @@ export default function DisputePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            participant_pubkey: attestation.participant,
+            participant_pubkey: originalWallet,
             streak_pubkey: id,
             day_index: attestation.dayIndex,
             github_username: githubUsername.trim(),
@@ -138,7 +150,7 @@ export default function DisputePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            participant_pubkey: attestation.participant,
+            participant_pubkey: originalWallet,
             streak_pubkey: id,
             day_index: attestation.dayIndex,
             habit_type: habitLabels[streak.habitType],
@@ -162,7 +174,7 @@ export default function DisputePage() {
       setCounterResult(data);
 
       // Build and submit the resolve_dispute transaction
-      const counterMsg = buildCounterAttestationMessage(data, attestation.participant, id, attestation.dayIndex);
+      const counterMsg = buildCounterAttestationMessage(data, originalWallet, id, attestation.dayIndex);
       const resolver = new PublicKey(address!);
       const disputer = attestation.disputer ? new PublicKey(attestation.disputer) : resolver;
 
@@ -182,7 +194,8 @@ export default function DisputePage() {
       // Show outcome screen instead of staying on the same page
       setResolved({ verdict: data.verdict });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Resolution failed — please try again');
+      const msg = err instanceof Error && err.message ? err.message : 'Resolution failed — please try again';
+      toast.error(msg);
     } finally {
       setResolving(false);
     }
