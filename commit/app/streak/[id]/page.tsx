@@ -1,10 +1,10 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useWallet } from '@/app/lib/wallet-context';
 import { PublicKey } from '@solana/web3.js';
-import { Loader2, Trophy, Clock, Users, TrendingUp, LogOut } from 'lucide-react';
+import { Loader2, Trophy, Clock, Users, TrendingUp, LogOut, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Navbar } from '../../components/Navbar';
 import { HabitChip } from '../../components/HabitTypeSelector';
@@ -15,7 +15,7 @@ import { StakeWidget } from '../../components/StakeWidget';
 import { StakeHealthPanel } from '../../components/StakeHealthPanel';
 import { useStreak, useParticipant, useStreakParticipants } from '../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../lib/use-solana-tx';
-import { buildClaimRewardIxs, buildWithdrawFailedIxs, buildSlashMissedIxs, findAttestationPda } from '../../lib/solana';
+import { buildClaimRewardIxs, buildWithdrawFailedIxs, buildSlashMissedIxs, buildCancelStreakIxs, findAttestationPda } from '../../lib/solana';
 import { formatUsdc } from '../../lib/constants';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getProgram } from '../../lib/program';
@@ -24,6 +24,7 @@ import { AttestationState } from '../../lib/types';
 
 export default function StreakDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { connected, publicKey } = useWallet();
   const address = publicKey?.toBase58() ?? null;
 
@@ -266,6 +267,24 @@ export default function StreakDetailPage() {
     }
   }
 
+  // Creator can cancel if no one has joined yet (before or after start — permissionless after start)
+  const canCancel = connected && !!streak &&
+    Number(streak.participantCount) === 0 &&
+    !userParticipant &&
+    (address === streak.creator || streak.startTimestamp <= now);
+
+  async function handleCancel() {
+    if (!publicKey || !id || !streak) return;
+    try {
+      const ixs = await buildCancelStreakIxs(publicKey, new PublicKey(id), new PublicKey(streak.creator));
+      await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
+      toast.success('Streak cancelled. Rent returned to your wallet.');
+      router.push('/dashboard');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Cancel failed');
+    }
+  }
+
   async function handleWithdraw() {
     if (!publicKey || !id) return;
     try {
@@ -418,6 +437,13 @@ export default function StreakDetailPage() {
                 <span className="flex items-center gap-2 text-base font-bold text-green-400 bg-green-400/10 border border-green-400/30 px-6 py-3 rounded-xl">
                   <Trophy size={18} /> Protocol Completed
                 </span>
+              )}
+              {canCancel && (
+                <button onClick={() => void handleCancel()} disabled={sending}
+                  className="flex items-center gap-2 bg-red-900/20 border border-red-500/30 text-red-400 hover:bg-red-900/40 hover:border-red-500/60 disabled:opacity-50 rounded-xl px-6 py-3 text-sm font-medium transition-all active:scale-95">
+                  {sending ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                  Cancel Streak
+                </button>
               )}
             </div>
           </div>

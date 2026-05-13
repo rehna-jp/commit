@@ -7,6 +7,116 @@
   },
   "instructions": [
     {
+      "name": "cancel_streak",
+      "discriminator": [
+        81,
+        235,
+        185,
+        118,
+        122,
+        237,
+        137,
+        38
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  116,
+                  114,
+                  101,
+                  97,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak.creator",
+                "account": "Streak"
+              },
+              {
+                "kind": "account",
+                "path": "streak.name",
+                "account": "Streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "phash_registry",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  104,
+                  97,
+                  115,
+                  104
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "creator",
+          "writable": true
+        },
+        {
+          "name": "signer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "claim_reward",
       "discriminator": [
         149,
@@ -1180,6 +1290,16 @@
       "code": 6026,
       "name": "Overflow",
       "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6027,
+      "name": "HasParticipants",
+      "msg": "Cannot cancel a streak that has participants"
+    },
+    {
+      "code": 6028,
+      "name": "OnlyCreatorCanCancelBeforeStart",
+      "msg": "Only the creator can cancel before the streak starts"
     }
   ],
   "types": [

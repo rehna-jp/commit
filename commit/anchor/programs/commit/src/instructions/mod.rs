@@ -1,3 +1,4 @@
+pub mod cancel_streak;
 pub mod claim_reward;
 pub mod create_streak;
 pub mod dispute_checkin;
@@ -8,6 +9,7 @@ pub mod slash_missed;
 pub mod submit_checkin_with_attestation;
 pub mod withdraw_failed;
 
+pub use cancel_streak::*;
 pub use claim_reward::*;
 pub use create_streak::*;
 pub use dispute_checkin::*;

@@ -388,6 +388,31 @@ export async function buildClaimRewardIxs(
   return { ixs: [ix], completionMint };
 }
 
+export async function buildCancelStreakIxs(
+  signer: PublicKey,
+  streak: PublicKey,
+  creator: PublicKey
+): Promise<TransactionInstruction[]> {
+  const [phashRegistryPda] = findPhashRegistryPda(streak);
+  const [escrowPda] = findEscrowPda(streak);
+
+  const program = getProgram(signer.toBase58());
+  const ix = await program.methods
+    .cancelStreak()
+    .accounts({
+      streak,
+      phashRegistry: phashRegistryPda,
+      escrowTokenAccount: escrowPda,
+      usdcMint: USDC_MINT,
+      creator,
+      signer,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+  return [ix];
+}
+
 export async function buildWithdrawFailedIxs(
   user: PublicKey,
   streak: PublicKey
