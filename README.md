@@ -12,7 +12,7 @@ commit is a habit-accountability protocol on Solana. Users stake USDC on daily h
 Groq (Llama 4 Scout) verdicts are ed25519-signed by the verifier backend, packed into a deterministic 171-byte message, and verified on-chain by Solana's native `Ed25519Program`. Every accepted check-in can be disputed within a 24-hour window. Disputes trigger a stricter counter-prompt; the result updates the attestation state and distributes bonds atomically. The full optimistic verification trail is permanently on-chain.
 
 ### 2 — On-Chain Perceptual Hash Registry
-Every accepted photo's 64-bit DCT perceptual hash is appended to a `PhashRegistry` PDA. On the next check-in, the contract computes Hamming distance against every stored hash (~12 CU per comparison). If distance ≤ 8, the submission is rejected before AI runs — making photo reuse cryptographically impossible at the protocol level.
+Every accepted photo's 64-bit DCT perceptual hash is appended to a `PhashRegistry` PDA. On the next check-in, the contract computes Hamming distance against every stored hash (~12 CU per comparison). If distance ≤ 8, the submission is rejected before AI runs making photo reuse cryptographically impossible at the protocol level.
 
 ### 3 — Soulbound Completion NFTs
 Streak completion mints a Token-2022 NFT with the `NonTransferable` extension enforced at the mint level — no transfers, ever. Mint authority is revoked immediately after minting, making the NFT permanently fixed to the holder.

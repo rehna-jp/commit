@@ -24,6 +24,10 @@ pub const PHASH_HAMMING_THRESHOLD: u32 = 8;
 pub mod commit {
     use super::*;
 
+    pub fn cancel_streak(ctx: Context<CancelStreak>) -> Result<()> {
+        instructions::cancel_streak::handler(ctx)
+    }
+
     pub fn create_streak(ctx: Context<CreateStreak>, args: CreateStreakArgs) -> Result<()> {
         instructions::create_streak::handler(ctx, args)
     }

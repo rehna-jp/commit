@@ -56,4 +56,8 @@ pub enum CommitError {
     StreakComplete,
     #[msg("Arithmetic overflow")]
     Overflow,
+    #[msg("Cannot cancel a streak that has participants")]
+    HasParticipants,
+    #[msg("Only the creator can cancel before the streak starts")]
+    OnlyCreatorCanCancelBeforeStart,
 }
