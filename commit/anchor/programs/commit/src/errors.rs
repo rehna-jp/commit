@@ -60,4 +60,6 @@ pub enum CommitError {
     HasParticipants,
     #[msg("Only the creator can cancel before the streak starts")]
     OnlyCreatorCanCancelBeforeStart,
+    #[msg("Cannot slash while a check-in attestation is pending or disputed")]
+    AttestationStillActive,
 }

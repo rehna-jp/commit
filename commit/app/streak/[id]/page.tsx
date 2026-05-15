@@ -113,7 +113,7 @@ export default function StreakDetailPage() {
 
     for (let i = 0; i < missedCount; i++) {
       try {
-        const ixs = await buildSlashMissedIxs(publicKey, streakPk, participantPk);
+        const ixs = await buildSlashMissedIxs(publicKey, streakPk, participantPk, userParticipant.currentStreak + i);
         await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
       } catch {
         break;
@@ -143,7 +143,7 @@ export default function StreakDetailPage() {
         const participantPk = new PublicKey(p.pubkey);
         for (let i = 0; i < missedCount; i++) {
           try {
-            const ixs = await buildSlashMissedIxs(publicKey, streakPk, participantPk);
+            const ixs = await buildSlashMissedIxs(publicKey, streakPk, participantPk, p.currentStreak + i);
             await sendTransaction(ixs, {});
           } catch { break; }
         }

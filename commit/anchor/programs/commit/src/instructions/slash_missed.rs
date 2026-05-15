@@ -16,6 +16,13 @@ pub struct SlashMissed<'info> {
     )]
     pub participant: Account<'info, Participant>,
 
+    /// Optional attestation for the day being slashed.
+    /// If it exists and is Pending or Disputed the slash is blocked — the participant
+    /// submitted on time and the outcome is not yet settled.
+    /// CHECK: PDA seeds verified in handler; account may not exist yet.
+    #[account()]
+    pub day_attestation: UncheckedAccount<'info>,
+
     /// Permissionless — anyone can slash after the grace period
     pub caller: Signer<'info>,
 }
@@ -44,6 +51,35 @@ pub fn handler(ctx: Context<SlashMissed>) -> Result<()> {
         .checked_add((participant.current_streak as i64 + 1) * 86_400)
         .ok_or(CommitError::Overflow)?;
     require!(now >= slash_eligible_from, CommitError::TooEarlyToSlash);
+
+    // Guard: if an attestation exists for the day being slashed and is still
+    // Pending or Disputed, the participant submitted on time — block the slash.
+    let day_acct_empty = ctx.accounts.day_attestation.data_is_empty();
+    if !day_acct_empty {
+        // Verify the account is the correct PDA before trusting its data.
+        let participant_key = ctx.accounts.participant.key();
+        let day_bytes = participant.current_streak.to_le_bytes();
+        let expected_seeds: &[&[u8]] = &[
+            b"attestation",
+            participant_key.as_ref(),
+            &day_bytes,
+        ];
+        let (expected_pda, _) = Pubkey::find_program_address(expected_seeds, ctx.program_id);
+        require_keys_eq!(ctx.accounts.day_attestation.key(), expected_pda, CommitError::InvalidSignature);
+
+        // Read state byte directly. Layout (after 8-byte disc):
+        // participant(32) streak(32) day_index(2) photo_hash(32) phash(8)
+        // verifier_sig(64) verdict(1) reason_hash(32) created_at(8)
+        // dispute_window_ends(8) → state at byte 227.
+        // Borsh enum: Pending=0, Disputed=1, Finalized=2, Overturned=3.
+        const STATE_OFFSET: usize = 227;
+        let data = ctx.accounts.day_attestation.try_borrow_data()?;
+        require!(data.len() > STATE_OFFSET, CommitError::InvalidSignature);
+        let state_byte = data[STATE_OFFSET];
+        drop(data);
+        // Pending or Disputed — submission is still in flight
+        require!(state_byte != 0 && state_byte != 1, CommitError::AttestationStillActive);
+    }
 
     let slash = participant
         .stake_locked

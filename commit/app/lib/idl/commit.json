@@ -490,6 +490,115 @@
       "args": []
     },
     {
+      "name": "expire_dispute",
+      "discriminator": [
+        241,
+        116,
+        178,
+        182,
+        234,
+        173,
+        61,
+        120
+      ],
+      "accounts": [
+        {
+          "name": "streak",
+          "writable": true,
+          "relations": [
+            "attestation"
+          ]
+        },
+        {
+          "name": "target_participant",
+          "writable": true
+        },
+        {
+          "name": "attestation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  101,
+                  115,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "target_participant"
+              },
+              {
+                "kind": "account",
+                "path": "attestation.day_index",
+                "account": "CheckinAttestation"
+              }
+            ]
+          }
+        },
+        {
+          "name": "disputer",
+          "writable": true
+        },
+        {
+          "name": "disputer_token_account",
+          "writable": true
+        },
+        {
+          "name": "escrow_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "streak"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "caller",
+          "docs": [
+            "Permissionless — anyone can trigger expiry"
+          ],
+          "signer": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "finalize_checkin",
       "discriminator": [
         208,
@@ -852,6 +961,14 @@
               }
             ]
           }
+        },
+        {
+          "name": "day_attestation",
+          "docs": [
+            "Optional attestation for the day being slashed.",
+            "If it exists and is Pending or Disputed the slash is blocked — the participant",
+            "submitted on time and the outcome is not yet settled."
+          ]
         },
         {
           "name": "caller",
@@ -1300,6 +1417,11 @@
       "code": 6028,
       "name": "OnlyCreatorCanCancelBeforeStart",
       "msg": "Only the creator can cancel before the streak starts"
+    },
+    {
+      "code": 6029,
+      "name": "AttestationStillActive",
+      "msg": "Cannot slash while a check-in attestation is pending or disputed"
     }
   ],
   "types": [
