@@ -985,6 +985,7 @@ describe("commit", () => {
           .accounts({
             streak: streakKey,
             participant: participantPDA(streakKey, alice.publicKey),
+            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
             caller: alice.publicKey,
           })
           .instruction(),
@@ -1007,6 +1008,7 @@ describe("commit", () => {
           .accounts({
             streak: streakKey,
             participant: participantPDA(streakKey, alice.publicKey),
+            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
             caller: payer.publicKey,
           })
           .instruction(),
@@ -1285,6 +1287,7 @@ describe("commit", () => {
           .accounts({
             streak: streakKey,
             participant: participantPDA(streakKey, alice.publicKey),
+            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
             caller: payer.publicKey,
           })
           .instruction(),
@@ -1297,6 +1300,7 @@ describe("commit", () => {
           .accounts({
             streak: streakKey,
             participant: participantPDA(streakKey, alice.publicKey),
+            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 1),
             caller: payer.publicKey,
           })
           .instruction(),

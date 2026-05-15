@@ -47,6 +47,10 @@ pub mod commit {
         instructions::dispute_checkin::handler(ctx)
     }
 
+    pub fn expire_dispute(ctx: Context<ExpireDispute>) -> Result<()> {
+        instructions::expire_dispute::handler(ctx)
+    }
+
     pub fn resolve_dispute(ctx: Context<ResolveDispute>, args: ResolveDisputeArgs) -> Result<()> {
         instructions::resolve_dispute::handler(ctx, args)
     }

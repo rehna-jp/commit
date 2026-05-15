@@ -10,7 +10,7 @@ import { Navbar } from '../../../../components/Navbar';
 import { DisputeButton } from '../../../../components/DisputeButton';
 import { useAttestation, useStreak, useParticipant } from '../../../../lib/use-chain-data';
 import { useSolanaTransaction } from '../../../../lib/use-solana-tx';
-import { buildDisputeCheckinIxs, buildResolveDisputeIxs, buildFinalizeCheckinIxs } from '../../../../lib/solana';
+import { buildDisputeCheckinIxs, buildResolveDisputeIxs, buildFinalizeCheckinIxs, buildExpireDisputeIxs } from '../../../../lib/solana';
 import { getProgram } from '../../../../lib/program';
 import { AttestationState, HabitType } from '../../../../lib/types';
 import { formatUsdc, DISPUTE_BOND_BPS, DEVNET_MODE } from '../../../../lib/constants';
@@ -60,6 +60,28 @@ export default function DisputePage() {
 
   const secondsLeft = attestation ? attestation.disputeWindowEnds - now : 0;
   const bondAmount = streak ? Math.floor((streak.stakeAmount * DISPUTE_BOND_BPS) / 10_000) : 0;
+
+  const canExpire = attestation?.state === AttestationState.Disputed &&
+    now > attestation.disputeWindowEnds &&
+    !!attestation.disputer;
+
+  async function handleExpire() {
+    if (!address || !id || !attestation || !attestation.disputer) return;
+    try {
+      const ixs = await buildExpireDisputeIxs(
+        new PublicKey(address),
+        new PublicKey(id),
+        new PublicKey(attestation.participant),
+        new PublicKey(attestation.pubkey),
+        new PublicKey(attestation.disputer),
+      );
+      await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
+      setResolved({ verdict: false });
+    } catch (err) {
+      const msg = err instanceof Error && err.message ? err.message : 'Expiry failed — please try again';
+      toast.error(msg);
+    }
+  }
 
   const canDispute = attestation?.state === AttestationState.Pending &&
     secondsLeft > 0 && !!userParticipant &&
@@ -117,11 +139,13 @@ export default function DisputePage() {
       const rawParticipant = await getProgram()
         .account['participant']
         .fetchNullable(new PublicKey(attestation.participant)) as { user: PublicKey } | null;
+      console.log('[resolve] rawParticipant:', rawParticipant);
       if (!rawParticipant) {
         toast.error('Could not load participant account — try again');
         return;
       }
       const originalWallet = rawParticipant.user.toBase58();
+      console.log('[resolve] originalWallet:', originalWallet);
 
       let data: VerifyCheckinResponse;
 
@@ -161,6 +185,7 @@ export default function DisputePage() {
         data = (await res.json()) as VerifyCheckinResponse;
       }
 
+      console.log('[resolve] API response:', data);
       if (!data.verifier_signature) {
         setCounterResult(data);
         toast.error(
@@ -181,6 +206,7 @@ export default function DisputePage() {
       const ixs = await buildResolveDisputeIxs({
         streakPubkey: id,
         targetParticipantPubkey: attestation.participant,
+        targetUserPubkey: originalWallet,
         attestationPubkey: attestation.pubkey,
         disputerPubkey: disputer.toBase58(),
         resolverPubkey: resolver.toBase58(),
@@ -194,6 +220,7 @@ export default function DisputePage() {
       // Show outcome screen instead of staying on the same page
       setResolved({ verdict: data.verdict });
     } catch (err) {
+      console.error('[resolve] error:', err);
       const msg = err instanceof Error && err.message ? err.message : 'Resolution failed — please try again';
       toast.error(msg);
     } finally {
@@ -353,7 +380,23 @@ export default function DisputePage() {
               </div>
             )}
 
-            {attestation.state === AttestationState.Disputed && (
+            {canExpire && (
+              <div className="space-y-3">
+                <p className="text-sm text-zinc-500 dark:text-smoke-600">
+                  The dispute window has closed and the submitter did not counter-verify. The dispute has expired — you can now claim your bond back plus the bounty.
+                </p>
+                <button
+                  onClick={() => void handleExpire()}
+                  disabled={sending}
+                  className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 disabled:opacity-50 rounded-lg px-5 py-2.5 text-sm font-medium w-full sm:w-auto justify-center"
+                >
+                  {sending && <Loader2 size={14} className="animate-spin" />}
+                  Claim Dispute Win
+                </button>
+              </div>
+            )}
+
+            {attestation.state === AttestationState.Disputed && !canExpire && (
               <div className="space-y-3">
                 <p className="text-sm text-zinc-500 dark:text-smoke-600">
                   Someone has challenged this check-in. To settle it, re-submit the original proof — the AI will take a second, stricter look. If it passes, the dispute fails and you keep your stake. If it fails, you get slashed.

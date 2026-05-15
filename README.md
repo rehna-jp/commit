@@ -84,7 +84,7 @@ commit/
 │   ├── programs/commit/src/
 │   │   ├── lib.rs                 # Entry point, program constants
 │   │   ├── state/                 # 5 account types
-│   │   ├── instructions/          # 9 instructions
+│   │   ├── instructions/          # 11 instructions
 │   │   ├── errors.rs
 │   │   └── utils.rs               # ed25519 verify + Hamming distance
 │   ├── scripts/
@@ -115,7 +115,7 @@ commit/
 | `PhashRegistry` | `[phash, streak]` | `Vec<u64>` of all accepted photo hashes |
 | `StreakProof` | `[proof, streak, owner]` | Completion record for NFT metadata |
 
-### 9 Instructions
+### 11 Instructions
 
 | Instruction | Description |
 |---|---|
@@ -124,8 +124,10 @@ commit/
 | `submit_checkin_with_attestation` | Verify ed25519 sig, check pHash, create Pending attestation |
 | `dispute_checkin` | Lock dispute bond, mark attestation Disputed |
 | `resolve_dispute` | Run counter-attestation, distribute bonds, update state |
+| `expire_dispute` | Permissionless: after dispute window closes with no counter-attestation, pay disputer bond + bounty and mark Overturned |
 | `finalize_checkin` | After dispute window, lock in the day and append pHash |
-| `slash_missed` | After 48h grace period, slash penalty percentage into pool |
+| `slash_missed` | After 48h grace period, slash penalty into pool — blocked if day's attestation is still Pending or Disputed |
+| `cancel_streak` | Creator cancels before the streak starts and reclaims escrow |
 | `claim_reward` | Return stake + pool share, mint soulbound NFT, create StreakProof |
 | `withdraw_failed` | After streak ends, return unslashed stake to participants who didn't complete |
 

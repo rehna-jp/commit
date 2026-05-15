@@ -108,6 +108,7 @@ export interface SubmitCheckinArgs {
 export interface ResolveDisputeArgs {
   streakPubkey: string;
   targetParticipantPubkey: string;
+  targetUserPubkey: string;       // wallet address — used for USDC ATA derivation
   attestationPubkey: string;
   disputerPubkey: string;
   resolverPubkey: string;
@@ -268,17 +269,47 @@ export async function buildDisputeCheckinIxs(
   return [ix];
 }
 
+export async function buildExpireDisputeIxs(
+  caller: PublicKey,
+  streakPubkey: PublicKey,
+  targetParticipantPubkey: PublicKey,
+  attestationPubkey: PublicKey,
+  disputerPubkey: PublicKey,
+): Promise<TransactionInstruction[]> {
+  const [escrowPda] = findEscrowPda(streakPubkey);
+  const disputerUsdc = getUsdcAta(disputerPubkey);
+
+  const program = getProgram(caller.toBase58());
+  const ix = await program.methods
+    .expireDispute()
+    .accounts({
+      streak: streakPubkey,
+      targetParticipant: targetParticipantPubkey,
+      attestation: attestationPubkey,
+      disputer: disputerPubkey,
+      disputerTokenAccount: disputerUsdc,
+      escrowTokenAccount: escrowPda,
+      usdcMint: USDC_MINT,
+      caller,
+      tokenProgram: TOKEN_PROGRAM_ID,
+      systemProgram: SystemProgram.programId,
+    })
+    .instruction();
+  return [ix];
+}
+
 /**
  * resolve_dispute also needs ed25519 at index 0 for the counter-attestation.
  */
 export async function buildResolveDisputeIxs(args: ResolveDisputeArgs): Promise<TransactionInstruction[]> {
   const streakPubkey = new PublicKey(args.streakPubkey);
   const targetParticipant = new PublicKey(args.targetParticipantPubkey);
+  const targetUser = new PublicKey(args.targetUserPubkey);
   const attestation = new PublicKey(args.attestationPubkey);
   const disputer = new PublicKey(args.disputerPubkey);
   const resolver = new PublicKey(args.resolverPubkey);
   const [escrowPda] = findEscrowPda(streakPubkey);
-  const targetUsdc = getUsdcAta(targetParticipant);
+  const targetUsdc = getUsdcAta(targetUser);
   const disputerUsdc = getUsdcAta(disputer);
   const verifierPubkey = new PublicKey(args.counterAttestationMessage.slice(0, 32));
 
@@ -339,12 +370,14 @@ export async function buildFinalizeCheckinIxs(
 export async function buildSlashMissedIxs(
   caller: PublicKey,
   streak: PublicKey,
-  participant: PublicKey
+  participant: PublicKey,
+  participantCurrentStreak: number
 ): Promise<TransactionInstruction[]> {
+  const [dayAttestationPda] = findAttestationPda(participant, participantCurrentStreak);
   const program = getProgram(caller.toBase58());
   const ix = await program.methods
     .slashMissed()
-    .accounts({ streak, participant, caller })
+    .accounts({ streak, participant, dayAttestation: dayAttestationPda, caller })
     .instruction();
   return [ix];
 }
