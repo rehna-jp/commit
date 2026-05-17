@@ -291,6 +291,7 @@ export default function StreakDetailPage() {
       const ixs = await buildWithdrawFailedIxs(publicKey, new PublicKey(id));
       await sendTransaction(ixs, { onStatus: (msg) => toast.info(msg) });
       toast.success('Remaining stake returned to your wallet.');
+      await refetchParticipant();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Withdraw failed');
     }
