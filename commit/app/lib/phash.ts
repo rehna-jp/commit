@@ -1,9 +1,9 @@
 // Perceptual hash: resize 32×32 grayscale, mean-threshold 8×8 block → 64-bit integer
-import sharp from 'sharp';
+import sharp from "sharp";
 
 export async function computePhash(imageBuffer: Buffer): Promise<bigint> {
   const { data } = await sharp(imageBuffer)
-    .resize(32, 32, { fit: 'fill' })
+    .resize(32, 32, { fit: "fill" })
     .grayscale()
     .raw()
     .toBuffer({ resolveWithObject: true });
@@ -23,5 +23,5 @@ export async function computePhash(imageBuffer: Buffer): Promise<bigint> {
 }
 
 export function phashToHex(phash: bigint): string {
-  return phash.toString(16).padStart(16, '0');
+  return phash.toString(16).padStart(16, "0");
 }

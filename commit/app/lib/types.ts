@@ -16,11 +16,11 @@ export enum AttestationState {
 }
 
 export const HABIT_LABELS: Record<HabitType, string> = {
-  [HabitType.Code]: 'Code',
-  [HabitType.Read]: 'Read',
-  [HabitType.Write]: 'Write',
-  [HabitType.Design]: 'Design',
-  [HabitType.Gym]: 'Gym',
+  [HabitType.Code]: "Code",
+  [HabitType.Read]: "Read",
+  [HabitType.Write]: "Write",
+  [HabitType.Design]: "Design",
+  [HabitType.Gym]: "Gym",
 };
 
 export interface Streak {

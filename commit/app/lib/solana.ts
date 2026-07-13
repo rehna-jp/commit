@@ -7,44 +7,55 @@ import {
   SystemProgram,
   SYSVAR_INSTRUCTIONS_PUBKEY,
   Keypair,
-} from '@solana/web3.js';
+} from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
   createAssociatedTokenAccountIdempotentInstruction,
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
-} from '@solana/spl-token';
-import { web3, BN } from '@coral-xyz/anchor';
-import { getProgram, PROGRAM_ID } from './program';
-import { PROGRAM_ID_STR, USDC_MINT_STR } from './constants';
-import type { HabitType } from './types';
+} from "@solana/spl-token";
+import { web3, BN } from "@coral-xyz/anchor";
+import { getProgram, PROGRAM_ID } from "./program";
+import { PROGRAM_ID_STR, USDC_MINT_STR } from "./constants";
+import type { HabitType } from "./types";
 
 const USDC_MINT = new PublicKey(USDC_MINT_STR);
-const RENT_SYSVAR = new PublicKey('SysvarRent111111111111111111111111111111111');
+const RENT_SYSVAR = new PublicKey(
+  "SysvarRent111111111111111111111111111111111"
+);
 
 // ─── PDA derivations ─────────────────────────────────────────────────────────
 
-export function findStreakPda(creator: PublicKey, name: string): [PublicKey, number] {
+export function findStreakPda(
+  creator: PublicKey,
+  name: string
+): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('streak'), creator.toBuffer(), Buffer.from(name)],
+    [Buffer.from("streak"), creator.toBuffer(), Buffer.from(name)],
     PROGRAM_ID
   );
 }
 
-export function findParticipantPda(streak: PublicKey, user: PublicKey): [PublicKey, number] {
+export function findParticipantPda(
+  streak: PublicKey,
+  user: PublicKey
+): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('participant'), streak.toBuffer(), user.toBuffer()],
+    [Buffer.from("participant"), streak.toBuffer(), user.toBuffer()],
     PROGRAM_ID
   );
 }
 
-export function findAttestationPda(participant: PublicKey, dayIndex: number): [PublicKey, number] {
+export function findAttestationPda(
+  participant: PublicKey,
+  dayIndex: number
+): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [
-      Buffer.from('attestation'),
+      Buffer.from("attestation"),
       participant.toBuffer(),
-      new BN(dayIndex).toArrayLike(Buffer, 'le', 2),
+      new BN(dayIndex).toArrayLike(Buffer, "le", 2),
     ],
     PROGRAM_ID
   );
@@ -52,21 +63,24 @@ export function findAttestationPda(participant: PublicKey, dayIndex: number): [P
 
 export function findPhashRegistryPda(streak: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('phash'), streak.toBuffer()],
+    [Buffer.from("phash"), streak.toBuffer()],
     PROGRAM_ID
   );
 }
 
-export function findStreakProofPda(streak: PublicKey, owner: PublicKey): [PublicKey, number] {
+export function findStreakProofPda(
+  streak: PublicKey,
+  owner: PublicKey
+): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('proof'), streak.toBuffer(), owner.toBuffer()],
+    [Buffer.from("proof"), streak.toBuffer(), owner.toBuffer()],
     PROGRAM_ID
   );
 }
 
 export function findEscrowPda(streak: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from('escrow'), streak.toBuffer()],
+    [Buffer.from("escrow"), streak.toBuffer()],
     PROGRAM_ID
   );
 }
@@ -76,7 +90,12 @@ export function getUsdcAta(owner: PublicKey): PublicKey {
 }
 
 export function getNftAta(mint: PublicKey, owner: PublicKey): PublicKey {
-  return getAssociatedTokenAddressSync(mint, owner, false, TOKEN_2022_PROGRAM_ID);
+  return getAssociatedTokenAddressSync(
+    mint,
+    owner,
+    false,
+    TOKEN_2022_PROGRAM_ID
+  );
 }
 
 // ─── Instruction args types ───────────────────────────────────────────────────
@@ -108,7 +127,7 @@ export interface SubmitCheckinArgs {
 export interface ResolveDisputeArgs {
   streakPubkey: string;
   targetParticipantPubkey: string;
-  targetUserPubkey: string;       // wallet address — used for USDC ATA derivation
+  targetUserPubkey: string; // wallet address — used for USDC ATA derivation
   attestationPubkey: string;
   disputerPubkey: string;
   resolverPubkey: string;
@@ -174,7 +193,10 @@ export async function buildJoinStreakIxs(
 
   // Ensure USDC ATA exists — no-op if already initialized
   const createAtaIx = createAssociatedTokenAccountIdempotentInstruction(
-    user, userUsdc, user, USDC_MINT,
+    user,
+    userUsdc,
+    user,
+    USDC_MINT
   );
 
   const program = getProgram(user.toBase58());
@@ -199,7 +221,9 @@ export async function buildJoinStreakIxs(
  * CRITICAL: ed25519 sigverify at index 0, program ix at index 1.
  * The on-chain program reads instruction index 0 from the instructions sysvar.
  */
-export async function buildSubmitCheckinIxs(args: SubmitCheckinArgs): Promise<TransactionInstruction[]> {
+export async function buildSubmitCheckinIxs(
+  args: SubmitCheckinArgs
+): Promise<TransactionInstruction[]> {
   const participantPubkey = new PublicKey(args.participantPubkey);
   const userPubkey = new PublicKey(args.userPubkey);
   const streakPubkey = new PublicKey(args.streakPubkey);
@@ -274,7 +298,7 @@ export async function buildExpireDisputeIxs(
   streakPubkey: PublicKey,
   targetParticipantPubkey: PublicKey,
   attestationPubkey: PublicKey,
-  disputerPubkey: PublicKey,
+  disputerPubkey: PublicKey
 ): Promise<TransactionInstruction[]> {
   const [escrowPda] = findEscrowPda(streakPubkey);
   const disputerUsdc = getUsdcAta(disputerPubkey);
@@ -301,7 +325,9 @@ export async function buildExpireDisputeIxs(
 /**
  * resolve_dispute also needs ed25519 at index 0 for the counter-attestation.
  */
-export async function buildResolveDisputeIxs(args: ResolveDisputeArgs): Promise<TransactionInstruction[]> {
+export async function buildResolveDisputeIxs(
+  args: ResolveDisputeArgs
+): Promise<TransactionInstruction[]> {
   const streakPubkey = new PublicKey(args.streakPubkey);
   const targetParticipant = new PublicKey(args.targetParticipantPubkey);
   const targetUser = new PublicKey(args.targetUserPubkey);
@@ -311,7 +337,9 @@ export async function buildResolveDisputeIxs(args: ResolveDisputeArgs): Promise<
   const [escrowPda] = findEscrowPda(streakPubkey);
   const targetUsdc = getUsdcAta(targetUser);
   const disputerUsdc = getUsdcAta(disputer);
-  const verifierPubkey = new PublicKey(args.counterAttestationMessage.slice(0, 32));
+  const verifierPubkey = new PublicKey(
+    args.counterAttestationMessage.slice(0, 32)
+  );
 
   // Index 0: ed25519 sigverify for counter attestation
   const ed25519Ix = Ed25519Program.createInstructionWithPublicKey({
@@ -373,11 +401,19 @@ export async function buildSlashMissedIxs(
   participant: PublicKey,
   participantCurrentStreak: number
 ): Promise<TransactionInstruction[]> {
-  const [dayAttestationPda] = findAttestationPda(participant, participantCurrentStreak);
+  const [dayAttestationPda] = findAttestationPda(
+    participant,
+    participantCurrentStreak
+  );
   const program = getProgram(caller.toBase58());
   const ix = await program.methods
     .slashMissed()
-    .accounts({ streak, participant, dayAttestation: dayAttestationPda, caller })
+    .accounts({
+      streak,
+      participant,
+      dayAttestation: dayAttestationPda,
+      caller,
+    })
     .instruction();
   return [ix];
 }

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 
 interface Props {
   onConfirm: () => void;
@@ -27,7 +27,9 @@ export function X402PaymentModal({ onConfirm, onCancel }: Props) {
           Verification Fee
         </h3>
 
-        <p className="font-mono text-3xl font-medium text-grape-500 mb-1">0.001 USDC</p>
+        <p className="font-mono text-3xl font-medium text-grape-500 mb-1">
+          0.001 USDC
+        </p>
         <p className="text-sm text-zinc-500 dark:text-smoke-600 mb-6">
           This covers the AI verification cost for your check-in.
         </p>

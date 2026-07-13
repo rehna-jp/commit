@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { ArrowRight, Loader2 } from 'lucide-react';
-import { StreakCard } from './StreakCard';
-import { useAllStreaks } from '../lib/use-chain-data';
+import Link from "next/link";
+import { ArrowRight, Loader2 } from "lucide-react";
+import { StreakCard } from "./StreakCard";
+import { useAllStreaks } from "../lib/use-chain-data";
 
 export function LiveStreaks() {
   const { streaks, loading } = useAllStreaks();
@@ -20,7 +20,11 @@ export function LiveStreaks() {
           href="/dashboard"
           className="text-sm font-medium text-smoke-500 hover:text-lilac-400 transition-colors flex items-center gap-1 group"
         >
-          Explore Network <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+          Explore Network{" "}
+          <ArrowRight
+            size={14}
+            className="transition-transform group-hover:translate-x-1"
+          />
         </Link>
       </div>
 
@@ -32,7 +36,10 @@ export function LiveStreaks() {
       ) : showcase.length === 0 ? (
         <div className="text-center py-20 text-smoke-600 bg-white/5 border border-white/5 rounded-2xl backdrop-blur-sm">
           <p className="text-lg mb-2">No active streaks on-chain yet.</p>
-          <Link href="/streak/create" className="text-orchid-400 hover:text-orchid-300 text-sm font-medium transition-colors">
+          <Link
+            href="/streak/create"
+            className="text-orchid-400 hover:text-orchid-300 text-sm font-medium transition-colors"
+          >
             Be the first to create one
           </Link>
         </div>

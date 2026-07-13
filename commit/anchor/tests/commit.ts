@@ -49,27 +49,29 @@ function loadVerifierKeypair(): nacl.SignKeyPair {
 const verifierKp = loadVerifierKeypair();
 const VERIFIER_PK = Buffer.from(verifierKp.publicKey); // 32 bytes
 
-const PROGRAM_ID = new PublicKey("3Gd8xHLKGjj8evBtwQUTnawSTwWdbeAxZmtVyxMPm29G");
+const PROGRAM_ID = new PublicKey(
+  "3Gd8xHLKGjj8evBtwQUTnawSTwWdbeAxZmtVyxMPm29G"
+);
 
 // Timing constants
-const BASE_TS = 1_000_000;    // arbitrary base unix timestamp
+const BASE_TS = 1_000_000; // arbitrary base unix timestamp
 const ONE_DAY = 86_400;
 const TWO_DAYS = 172_800;
 
 // Stake config
-const STAKE_AMOUNT = new BN(1_000_000);   // 1 USDC (6 decimals)
+const STAKE_AMOUNT = new BN(1_000_000); // 1 USDC (6 decimals)
 const PENALTY_PCT = 20;
-const DURATION = 3;                        // 3-day streak for happy-path tests
+const DURATION = 3; // 3-day streak for happy-path tests
 
 // ─── 171-byte attestation message builder ─────────────────────────────────────
 function buildAttestation(
   user: PublicKey,
   streak: PublicKey,
   day: number,
-  photoHash: Buffer,  // 32 bytes
+  photoHash: Buffer, // 32 bytes
   phash: bigint,
   verdict: boolean,
-  reasonHash: Buffer, // 32 bytes
+  reasonHash: Buffer // 32 bytes
 ): Buffer {
   const msg = Buffer.alloc(171);
   VERIFIER_PK.copy(msg, 0);
@@ -84,7 +86,10 @@ function buildAttestation(
 }
 
 // Build the ed25519 sigverify instruction (must be at tx index 0).
-function ed25519Ix(msg: Buffer): { ix: anchor.web3.TransactionInstruction; sig: Buffer } {
+function ed25519Ix(msg: Buffer): {
+  ix: anchor.web3.TransactionInstruction;
+  sig: Buffer;
+} {
   const sig = Buffer.from(nacl.sign.detached(msg, verifierKp.secretKey));
   const ix = Ed25519Program.createInstructionWithPublicKey({
     publicKey: VERIFIER_PK,
@@ -103,7 +108,7 @@ async function getBlockhash(ctx: ProgramTestContext): Promise<string> {
 async function sendTx(
   ctx: ProgramTestContext,
   ixs: anchor.web3.TransactionInstruction[],
-  signers: Keypair[],
+  signers: Keypair[]
 ): Promise<void> {
   const tx = new Transaction();
   tx.add(...ixs);
@@ -118,7 +123,7 @@ async function expectAnchorError(
   ctx: ProgramTestContext,
   ixs: anchor.web3.TransactionInstruction[],
   signers: Keypair[],
-  errorName: string,
+  errorName: string
 ): Promise<void> {
   const tx = new Transaction();
   tx.add(...ixs);
@@ -126,39 +131,64 @@ async function expectAnchorError(
   tx.feePayer = signers[0].publicKey;
   tx.sign(...signers);
   const res = await ctx.banksClient.tryProcessTransaction(tx);
-  expect(res.result, `expected ${errorName} error but transaction succeeded`).to.not.be.null;
+  expect(res.result, `expected ${errorName} error but transaction succeeded`).to
+    .not.be.null;
   const logs = res.meta?.logMessages?.join("\n") ?? "";
   expect(logs, `expected logs to contain "${errorName}"`).to.include(errorName);
 }
 
 async function setTs(ctx: ProgramTestContext, ts: number): Promise<void> {
   const c = await ctx.banksClient.getClock();
-  ctx.setClock(new Clock(c.slot, c.epochStartTimestamp, c.epoch, c.leaderScheduleEpoch, BigInt(ts)));
+  ctx.setClock(
+    new Clock(
+      c.slot,
+      c.epochStartTimestamp,
+      c.epoch,
+      c.leaderScheduleEpoch,
+      BigInt(ts)
+    )
+  );
 }
 
-async function advanceTs(ctx: ProgramTestContext, seconds: number): Promise<void> {
+async function advanceTs(
+  ctx: ProgramTestContext,
+  seconds: number
+): Promise<void> {
   const c = await ctx.banksClient.getClock();
-  ctx.setClock(new Clock(
-    c.slot, c.epochStartTimestamp, c.epoch, c.leaderScheduleEpoch,
-    c.unixTimestamp + BigInt(seconds),
-  ));
+  ctx.setClock(
+    new Clock(
+      c.slot,
+      c.epochStartTimestamp,
+      c.epoch,
+      c.leaderScheduleEpoch,
+      c.unixTimestamp + BigInt(seconds)
+    )
+  );
 }
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
-async function makeMint(ctx: ProgramTestContext, payer: Keypair, authority: PublicKey): Promise<Keypair> {
+async function makeMint(
+  ctx: ProgramTestContext,
+  payer: Keypair,
+  authority: PublicKey
+): Promise<Keypair> {
   const kp = Keypair.generate();
   const rent = await ctx.banksClient.getRent();
-  await sendTx(ctx, [
-    SystemProgram.createAccount({
-      fromPubkey: payer.publicKey,
-      newAccountPubkey: kp.publicKey,
-      lamports: Number(rent.minimumBalance(BigInt(MINT_SIZE))),
-      space: MINT_SIZE,
-      programId: TOKEN_PROGRAM_ID,
-    }),
-    createInitializeMintInstruction(kp.publicKey, 6, authority, null),
-  ], [payer, kp]);
+  await sendTx(
+    ctx,
+    [
+      SystemProgram.createAccount({
+        fromPubkey: payer.publicKey,
+        newAccountPubkey: kp.publicKey,
+        lamports: Number(rent.minimumBalance(BigInt(MINT_SIZE))),
+        space: MINT_SIZE,
+        programId: TOKEN_PROGRAM_ID,
+      }),
+      createInitializeMintInstruction(kp.publicKey, 6, authority, null),
+    ],
+    [payer, kp]
+  );
   return kp;
 }
 
@@ -168,13 +198,22 @@ async function fundedAta(
   mint: PublicKey,
   mintAuth: Keypair,
   owner: PublicKey,
-  amount: bigint,
+  amount: bigint
 ): Promise<PublicKey> {
   const ata = getAssociatedTokenAddressSync(mint, owner);
-  await sendTx(ctx, [
-    createAssociatedTokenAccountInstruction(payer.publicKey, ata, owner, mint),
-    createMintToInstruction(mint, ata, mintAuth.publicKey, amount),
-  ], [payer, mintAuth]);
+  await sendTx(
+    ctx,
+    [
+      createAssociatedTokenAccountInstruction(
+        payer.publicKey,
+        ata,
+        owner,
+        mint
+      ),
+      createMintToInstruction(mint, ata, mintAuth.publicKey, amount),
+    ],
+    [payer, mintAuth]
+  );
   return ata;
 }
 
@@ -183,14 +222,14 @@ async function fundedAta(
 function streakPDA(creator: PublicKey, name: string): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("streak"), creator.toBuffer(), Buffer.from(name)],
-    PROGRAM_ID,
+    PROGRAM_ID
   )[0];
 }
 
 function participantPDA(streak: PublicKey, user: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("participant"), streak.toBuffer(), user.toBuffer()],
-    PROGRAM_ID,
+    PROGRAM_ID
   )[0];
 }
 
@@ -199,28 +238,28 @@ function attestationPDA(participant: PublicKey, day: number): PublicKey {
   dayBuf.writeUInt16LE(day, 0);
   return PublicKey.findProgramAddressSync(
     [Buffer.from("attestation"), participant.toBuffer(), dayBuf],
-    PROGRAM_ID,
+    PROGRAM_ID
   )[0];
 }
 
 function phashRegistryPDA(streak: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("phash"), streak.toBuffer()],
-    PROGRAM_ID,
+    PROGRAM_ID
   )[0];
 }
 
 function escrowPDA(streak: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("escrow"), streak.toBuffer()],
-    PROGRAM_ID,
+    PROGRAM_ID
   )[0];
 }
 
 function proofPDA(streak: PublicKey, user: PublicKey): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("proof"), streak.toBuffer(), user.toBuffer()],
-    PROGRAM_ID,
+    PROGRAM_ID
   )[0];
 }
 
@@ -232,13 +271,21 @@ async function buildSubmitIxs(
   user: Keypair,
   day: number,
   photoHash: Buffer,
-  phash: bigint,
+  phash: bigint
 ): Promise<anchor.web3.TransactionInstruction[]> {
   const participantKey = participantPDA(streakKey, user.publicKey);
   const attestationKey = attestationPDA(participantKey, day);
   const reasonHash = Buffer.alloc(32);
 
-  const msg = buildAttestation(user.publicKey, streakKey, day, photoHash, phash, true, reasonHash);
+  const msg = buildAttestation(
+    user.publicKey,
+    streakKey,
+    day,
+    photoHash,
+    phash,
+    true,
+    reasonHash
+  );
   const { ix: sigIx, sig } = ed25519Ix(msg);
 
   const programIx = await program.methods
@@ -276,13 +323,21 @@ async function buildResolveIxs(
   disputerAta: PublicKey,
   targetAta: PublicKey,
   resolver: Keypair,
-  usdcMint: PublicKey,
+  usdcMint: PublicKey
 ): Promise<anchor.web3.TransactionInstruction[]> {
   const targetParticipant = participantPDA(streakKey, targetUser);
   const attestationKey = attestationPDA(targetParticipant, day);
   const reasonHash = Buffer.alloc(32);
 
-  const msg = buildAttestation(targetUser, streakKey, day, photoHash, phash, counterVerdict, reasonHash);
+  const msg = buildAttestation(
+    targetUser,
+    streakKey,
+    day,
+    photoHash,
+    phash,
+    counterVerdict,
+    reasonHash
+  );
   const { ix: sigIx, sig } = ed25519Ix(msg);
 
   const programIx = await program.methods
@@ -331,7 +386,7 @@ describe("commit", () => {
     anchor.setProvider(provider);
     program = new anchor.Program<Commit>(
       require("../target/idl/commit.json"),
-      provider,
+      provider
     );
     payer = ctx.payer;
 
@@ -350,8 +405,22 @@ describe("commit", () => {
     await setTs(ctx, BASE_TS);
     usdcMintKp = await makeMint(ctx, payer, payer.publicKey);
 
-    aliceAta = await fundedAta(ctx, payer, usdcMintKp.publicKey, payer, alice.publicKey, 10_000_000n);
-    bobAta   = await fundedAta(ctx, payer, usdcMintKp.publicKey, payer, bob.publicKey,   10_000_000n);
+    aliceAta = await fundedAta(
+      ctx,
+      payer,
+      usdcMintKp.publicKey,
+      payer,
+      alice.publicKey,
+      10_000_000n
+    );
+    bobAta = await fundedAta(
+      ctx,
+      payer,
+      usdcMintKp.publicKey,
+      payer,
+      bob.publicKey,
+      10_000_000n
+    );
   });
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -367,30 +436,34 @@ describe("commit", () => {
       await setTs(ctx, BASE_TS + 50);
       streakKey = streakPDA(alice.publicKey, NAME);
 
-      await sendTx(ctx, [
-        await program.methods
-          .createStreak({
-            name: NAME,
-            habitType: { code: {} },
-            habitPrompt: "Write code every day",
-            durationDays: DURATION,
-            stakeAmount: STAKE_AMOUNT,
-            penaltyPercent: PENALTY_PCT,
-            startTimestamp: new BN(START),
-            maxParticipants: 10,
-          })
-          .accounts({
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            creator: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [alice]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .createStreak({
+              name: NAME,
+              habitType: { code: {} },
+              habitPrompt: "Write code every day",
+              durationDays: DURATION,
+              stakeAmount: STAKE_AMOUNT,
+              penaltyPercent: PENALTY_PCT,
+              startTimestamp: new BN(START),
+              maxParticipants: 10,
+            })
+            .accounts({
+              streak: streakKey,
+              phashRegistry: phashRegistryPDA(streakKey),
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              creator: alice.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            })
+            .instruction(),
+        ],
+        [alice]
+      );
 
       const s = await program.account.streak.fetch(streakKey);
       expect(s.name).to.equal(NAME);
@@ -402,22 +475,29 @@ describe("commit", () => {
     it("allows 2 participants to join before start", async () => {
       await setTs(ctx, START - 10);
 
-      for (const [user, ata] of [[alice, aliceAta], [bob, bobAta]] as [Keypair, PublicKey][]) {
-        await sendTx(ctx, [
-          await program.methods
-            .joinStreak()
-            .accounts({
-              streak: streakKey,
-              participant: participantPDA(streakKey, user.publicKey),
-              userTokenAccount: ata,
-              escrowTokenAccount: escrowPDA(streakKey),
-              usdcMint: usdcMintKp.publicKey,
-              user: user.publicKey,
-              tokenProgram: TOKEN_PROGRAM_ID,
-              systemProgram: SystemProgram.programId,
-            })
-            .instruction(),
-        ], [user]);
+      for (const [user, ata] of [
+        [alice, aliceAta],
+        [bob, bobAta],
+      ] as [Keypair, PublicKey][]) {
+        await sendTx(
+          ctx,
+          [
+            await program.methods
+              .joinStreak()
+              .accounts({
+                streak: streakKey,
+                participant: participantPDA(streakKey, user.publicKey),
+                userTokenAccount: ata,
+                escrowTokenAccount: escrowPDA(streakKey),
+                usdcMint: usdcMintKp.publicKey,
+                user: user.publicKey,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .instruction(),
+          ],
+          [user]
+        );
       }
 
       const s = await program.account.streak.fetch(streakKey);
@@ -425,13 +505,20 @@ describe("commit", () => {
       expect(s.activeCount).to.equal(2);
 
       // Each user staked 1 USDC; escrow should hold 2 USDC
-      const escrow = await getTokenAccount(provider.connection, escrowPDA(streakKey));
+      const escrow = await getTokenAccount(
+        provider.connection,
+        escrowPDA(streakKey)
+      );
       expect(escrow.amount.toString()).to.equal("2000000");
     });
 
     it("completes 3 daily check-ins and finalizes each after 24h", async () => {
       // Use widely-separated phash values: pairwise hamming distance = 64, 32, 32 bits > 8
-      const PHASHES = [0xAAAAAAAAAAAAAAAAn, 0x5555555555555555n, 0x0F0F0F0F0F0F0F0Fn];
+      const PHASHES = [
+        0xaaaaaaaaaaaaaaaan,
+        0x5555555555555555n,
+        0x0f0f0f0f0f0f0f0fn,
+      ];
 
       for (let day = 0; day < DURATION; day++) {
         // Set clock to the start of this day
@@ -442,12 +529,19 @@ describe("commit", () => {
 
         await sendTx(
           ctx,
-          await buildSubmitIxs(program, streakKey, alice, day, photoHash, phash),
-          [alice],
+          await buildSubmitIxs(
+            program,
+            streakKey,
+            alice,
+            day,
+            photoHash,
+            phash
+          ),
+          [alice]
         );
 
         const attest = await program.account.checkinAttestation.fetch(
-          attestationPDA(participantPDA(streakKey, alice.publicKey), day),
+          attestationPDA(participantPDA(streakKey, alice.publicKey), day)
         );
         expect(attest.state).to.deep.equal({ pending: {} });
         expect(attest.verdict).to.be.true;
@@ -456,31 +550,42 @@ describe("commit", () => {
         // Advance past the 24-hour dispute window
         await advanceTs(ctx, ONE_DAY + 1);
 
-        await sendTx(ctx, [
-          await program.methods
-            .finalizeCheckin()
-            .accounts({
-              attestation: attestationPDA(participantPDA(streakKey, alice.publicKey), day),
-              participant: participantPDA(streakKey, alice.publicKey),
-              streak: streakKey,
-              phashRegistry: phashRegistryPDA(streakKey),
-              caller: payer.publicKey,
-            })
-            .instruction(),
-        ], [payer]);
+        await sendTx(
+          ctx,
+          [
+            await program.methods
+              .finalizeCheckin()
+              .accounts({
+                attestation: attestationPDA(
+                  participantPDA(streakKey, alice.publicKey),
+                  day
+                ),
+                participant: participantPDA(streakKey, alice.publicKey),
+                streak: streakKey,
+                phashRegistry: phashRegistryPDA(streakKey),
+                caller: payer.publicKey,
+              })
+              .instruction(),
+          ],
+          [payer]
+        );
 
         const finalized = await program.account.checkinAttestation.fetch(
-          attestationPDA(participantPDA(streakKey, alice.publicKey), day),
+          attestationPDA(participantPDA(streakKey, alice.publicKey), day)
         );
         expect(finalized.state).to.deep.equal({ finalized: {} });
       }
 
-      const p = await program.account.participant.fetch(participantPDA(streakKey, alice.publicKey));
+      const p = await program.account.participant.fetch(
+        participantPDA(streakKey, alice.publicKey)
+      );
       expect(p.currentStreak).to.equal(DURATION);
       expect(p.isActive).to.be.true;
 
       // pHash registry has 3 entries
-      const reg = await program.account.phashRegistry.fetch(phashRegistryPDA(streakKey));
+      const reg = await program.account.phashRegistry.fetch(
+        phashRegistryPDA(streakKey)
+      );
       expect(reg.hashes.length).to.equal(DURATION);
     });
 
@@ -490,50 +595,70 @@ describe("commit", () => {
         completionMint.publicKey,
         alice.publicKey,
         false,
-        TOKEN_2022_PROGRAM_ID,
+        TOKEN_2022_PROGRAM_ID
       );
 
-      const aliceUsdcBefore = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
+      const aliceUsdcBefore = BigInt(
+        (await getTokenAccount(provider.connection, aliceAta)).amount.toString()
+      );
 
-      await sendTx(ctx, [
-        await program.methods
-          .claimReward()
-          .accounts({
-            streak: streakKey,
-            participant: participantPDA(streakKey, alice.publicKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            userTokenAccount: aliceAta,
-            usdcMint: usdcMintKp.publicKey,
-            completionMint: completionMint.publicKey,
-            userNftAta: userNftAta,
-            streakProof: proofPDA(streakKey, alice.publicKey),
-            user: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            token2022Program: TOKEN_2022_PROGRAM_ID,
-            associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [alice, completionMint]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .claimReward()
+            .accounts({
+              streak: streakKey,
+              participant: participantPDA(streakKey, alice.publicKey),
+              escrowTokenAccount: escrowPDA(streakKey),
+              userTokenAccount: aliceAta,
+              usdcMint: usdcMintKp.publicKey,
+              completionMint: completionMint.publicKey,
+              userNftAta: userNftAta,
+              streakProof: proofPDA(streakKey, alice.publicKey),
+              user: alice.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              token2022Program: TOKEN_2022_PROGRAM_ID,
+              associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            })
+            .instruction(),
+        ],
+        [alice, completionMint]
+      );
 
       // Stake returned: alice USDC balance increased
-      const aliceUsdcAfter = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
+      const aliceUsdcAfter = BigInt(
+        (await getTokenAccount(provider.connection, aliceAta)).amount.toString()
+      );
       expect(aliceUsdcAfter > aliceUsdcBefore).to.be.true;
       expect(aliceUsdcAfter - aliceUsdcBefore).to.equal(1_000_000n); // got her 1 USDC back
 
       // StreakProof PDA holds correct metadata
-      const proof = await program.account.streakProof.fetch(proofPDA(streakKey, alice.publicKey));
+      const proof = await program.account.streakProof.fetch(
+        proofPDA(streakKey, alice.publicKey)
+      );
       expect(proof.owner.toBase58()).to.equal(alice.publicKey.toBase58());
       expect(proof.durationDays).to.equal(DURATION);
       expect(proof.stakeLamports.toNumber()).to.equal(STAKE_AMOUNT.toNumber());
 
       // NFT ATA has exactly 1 token
-      const nftAcct = await getTokenAccount(provider.connection, userNftAta, "confirmed", TOKEN_2022_PROGRAM_ID);
+      const nftAcct = await getTokenAccount(
+        provider.connection,
+        userNftAta,
+        "confirmed",
+        TOKEN_2022_PROGRAM_ID
+      );
       expect(nftAcct.amount.toString()).to.equal("1");
 
       // Mint authority revoked (soulbound — no more tokens can be minted)
-      const mintInfo = await getMint(provider.connection, completionMint.publicKey, "confirmed", TOKEN_2022_PROGRAM_ID);
+      const mintInfo = await getMint(
+        provider.connection,
+        completionMint.publicKey,
+        "confirmed",
+        TOKEN_2022_PROGRAM_ID
+      );
       expect(mintInfo.mintAuthority).to.be.null;
 
       // Mint has the NonTransferable extension
@@ -557,48 +682,59 @@ describe("commit", () => {
       await setTs(ctx, BASE_TS + 1_500);
       streakKey = streakPDA(alice.publicKey, NAME);
 
-      await sendTx(ctx, [
-        await program.methods
-          .createStreak({
-            name: NAME,
-            habitType: { gym: {} },
-            habitPrompt: "Go to the gym",
-            durationDays: 7,
-            stakeAmount: STAKE_AMOUNT,
-            penaltyPercent: PENALTY_PCT,
-            startTimestamp: new BN(START),
-            maxParticipants: 10,
-          })
-          .accounts({
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            creator: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [alice]);
-
-      await setTs(ctx, START - 10);
-      for (const [user, ata] of [[alice, aliceAta], [bob, bobAta]] as [Keypair, PublicKey][]) {
-        await sendTx(ctx, [
+      await sendTx(
+        ctx,
+        [
           await program.methods
-            .joinStreak()
+            .createStreak({
+              name: NAME,
+              habitType: { gym: {} },
+              habitPrompt: "Go to the gym",
+              durationDays: 7,
+              stakeAmount: STAKE_AMOUNT,
+              penaltyPercent: PENALTY_PCT,
+              startTimestamp: new BN(START),
+              maxParticipants: 10,
+            })
             .accounts({
               streak: streakKey,
-              participant: participantPDA(streakKey, user.publicKey),
-              userTokenAccount: ata,
+              phashRegistry: phashRegistryPDA(streakKey),
               escrowTokenAccount: escrowPDA(streakKey),
               usdcMint: usdcMintKp.publicKey,
-              user: user.publicKey,
+              creator: alice.publicKey,
               tokenProgram: TOKEN_PROGRAM_ID,
               systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
             })
             .instruction(),
-        ], [user]);
+        ],
+        [alice]
+      );
+
+      await setTs(ctx, START - 10);
+      for (const [user, ata] of [
+        [alice, aliceAta],
+        [bob, bobAta],
+      ] as [Keypair, PublicKey][]) {
+        await sendTx(
+          ctx,
+          [
+            await program.methods
+              .joinStreak()
+              .accounts({
+                streak: streakKey,
+                participant: participantPDA(streakKey, user.publicKey),
+                userTokenAccount: ata,
+                escrowTokenAccount: escrowPDA(streakKey),
+                usdcMint: usdcMintKp.publicKey,
+                user: user.publicKey,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .instruction(),
+          ],
+          [user]
+        );
       }
     });
 
@@ -607,65 +743,92 @@ describe("commit", () => {
       await sendTx(
         ctx,
         await buildSubmitIxs(program, streakKey, alice, 0, photoHash, phash),
-        [alice],
+        [alice]
       );
 
       const disputeBond = STAKE_AMOUNT.toNumber() / 10; // 100_000 (0.1 USDC)
-      const bobBalBefore = BigInt((await getTokenAccount(provider.connection, bobAta)).amount.toString());
+      const bobBalBefore = BigInt(
+        (await getTokenAccount(provider.connection, bobAta)).amount.toString()
+      );
 
-      await sendTx(ctx, [
-        await program.methods
-          .disputeCheckin()
-          .accounts({
-            streak: streakKey,
-            targetParticipant: participantPDA(streakKey, alice.publicKey),
-            attestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
-            disputerParticipant: participantPDA(streakKey, bob.publicKey),
-            disputerTokenAccount: bobAta,
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            disputerUser: bob.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-          })
-          .instruction(),
-      ], [bob]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .disputeCheckin()
+            .accounts({
+              streak: streakKey,
+              targetParticipant: participantPDA(streakKey, alice.publicKey),
+              attestation: attestationPDA(
+                participantPDA(streakKey, alice.publicKey),
+                0
+              ),
+              disputerParticipant: participantPDA(streakKey, bob.publicKey),
+              disputerTokenAccount: bobAta,
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              disputerUser: bob.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+            })
+            .instruction(),
+        ],
+        [bob]
+      );
 
       // Bob paid the dispute bond
-      const bobBalMid = BigInt((await getTokenAccount(provider.connection, bobAta)).amount.toString());
+      const bobBalMid = BigInt(
+        (await getTokenAccount(provider.connection, bobAta)).amount.toString()
+      );
       expect(bobBalMid).to.equal(bobBalBefore - BigInt(disputeBond));
 
-      const aliceStakeBefore = (await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
-      )).stakeLocked.toNumber();
+      const aliceStakeBefore = (
+        await program.account.participant.fetch(
+          participantPDA(streakKey, alice.publicKey)
+        )
+      ).stakeLocked.toNumber();
 
       // counter_verdict = false → dispute wins, original overturned
       await sendTx(
         ctx,
         await buildResolveIxs(
-          program, streakKey, alice.publicKey, 0, photoHash, phash,
-          false, bob.publicKey, bobAta, aliceAta, payer, usdcMintKp.publicKey,
+          program,
+          streakKey,
+          alice.publicKey,
+          0,
+          photoHash,
+          phash,
+          false,
+          bob.publicKey,
+          bobAta,
+          aliceAta,
+          payer,
+          usdcMintKp.publicKey
         ),
-        [payer],
+        [payer]
       );
 
       // Attestation state is Overturned
       const attest = await program.account.checkinAttestation.fetch(
-        attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
+        attestationPDA(participantPDA(streakKey, alice.publicKey), 0)
       );
       expect(attest.state).to.deep.equal({ overturned: {} });
       expect(attest.finalVerdict).to.equal(false);
 
       // Alice's stake was slashed by penalty_percent
-      const aliceStakeAfter = (await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
-      )).stakeLocked.toNumber();
-      const slash = Math.floor(aliceStakeBefore * PENALTY_PCT / 100); // 200_000
+      const aliceStakeAfter = (
+        await program.account.participant.fetch(
+          participantPDA(streakKey, alice.publicKey)
+        )
+      ).stakeLocked.toNumber();
+      const slash = Math.floor((aliceStakeBefore * PENALTY_PCT) / 100); // 200_000
       expect(aliceStakeAfter).to.equal(aliceStakeBefore - slash);
 
       // Bob received dispute_bond + bounty (30% of slash)
-      const bounty = Math.floor(slash * 30 / 100); // 60_000
-      const bobBalAfter = BigInt((await getTokenAccount(provider.connection, bobAta)).amount.toString());
+      const bounty = Math.floor((slash * 30) / 100); // 60_000
+      const bobBalAfter = BigInt(
+        (await getTokenAccount(provider.connection, bobAta)).amount.toString()
+      );
       expect(bobBalAfter).to.equal(bobBalMid + BigInt(disputeBond + bounty));
 
       // Pool grew by slash − bounty
@@ -689,48 +852,59 @@ describe("commit", () => {
       await setTs(ctx, BASE_TS + 3_500);
       streakKey = streakPDA(alice.publicKey, NAME);
 
-      await sendTx(ctx, [
-        await program.methods
-          .createStreak({
-            name: NAME,
-            habitType: { read: {} },
-            habitPrompt: "Read a book",
-            durationDays: 5,
-            stakeAmount: STAKE_AMOUNT,
-            penaltyPercent: PENALTY_PCT,
-            startTimestamp: new BN(START),
-            maxParticipants: 10,
-          })
-          .accounts({
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            creator: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [alice]);
-
-      await setTs(ctx, START - 10);
-      for (const [user, ata] of [[alice, aliceAta], [bob, bobAta]] as [Keypair, PublicKey][]) {
-        await sendTx(ctx, [
+      await sendTx(
+        ctx,
+        [
           await program.methods
-            .joinStreak()
+            .createStreak({
+              name: NAME,
+              habitType: { read: {} },
+              habitPrompt: "Read a book",
+              durationDays: 5,
+              stakeAmount: STAKE_AMOUNT,
+              penaltyPercent: PENALTY_PCT,
+              startTimestamp: new BN(START),
+              maxParticipants: 10,
+            })
             .accounts({
               streak: streakKey,
-              participant: participantPDA(streakKey, user.publicKey),
-              userTokenAccount: ata,
+              phashRegistry: phashRegistryPDA(streakKey),
               escrowTokenAccount: escrowPDA(streakKey),
               usdcMint: usdcMintKp.publicKey,
-              user: user.publicKey,
+              creator: alice.publicKey,
               tokenProgram: TOKEN_PROGRAM_ID,
               systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
             })
             .instruction(),
-        ], [user]);
+        ],
+        [alice]
+      );
+
+      await setTs(ctx, START - 10);
+      for (const [user, ata] of [
+        [alice, aliceAta],
+        [bob, bobAta],
+      ] as [Keypair, PublicKey][]) {
+        await sendTx(
+          ctx,
+          [
+            await program.methods
+              .joinStreak()
+              .accounts({
+                streak: streakKey,
+                participant: participantPDA(streakKey, user.publicKey),
+                userTokenAccount: ata,
+                escrowTokenAccount: escrowPDA(streakKey),
+                usdcMint: usdcMintKp.publicKey,
+                user: user.publicKey,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .instruction(),
+          ],
+          [user]
+        );
       }
     });
 
@@ -739,62 +913,91 @@ describe("commit", () => {
       await sendTx(
         ctx,
         await buildSubmitIxs(program, streakKey, alice, 0, photoHash, phash),
-        [alice],
+        [alice]
       );
 
       const disputeBond = STAKE_AMOUNT.toNumber() / 10;
-      await sendTx(ctx, [
-        await program.methods
-          .disputeCheckin()
-          .accounts({
-            streak: streakKey,
-            targetParticipant: participantPDA(streakKey, alice.publicKey),
-            attestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
-            disputerParticipant: participantPDA(streakKey, bob.publicKey),
-            disputerTokenAccount: bobAta,
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            disputerUser: bob.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-          })
-          .instruction(),
-      ], [bob]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .disputeCheckin()
+            .accounts({
+              streak: streakKey,
+              targetParticipant: participantPDA(streakKey, alice.publicKey),
+              attestation: attestationPDA(
+                participantPDA(streakKey, alice.publicKey),
+                0
+              ),
+              disputerParticipant: participantPDA(streakKey, bob.publicKey),
+              disputerTokenAccount: bobAta,
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              disputerUser: bob.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+            })
+            .instruction(),
+        ],
+        [bob]
+      );
 
-      const bobBalMid  = BigInt((await getTokenAccount(provider.connection, bobAta)).amount.toString());
-      const aliceBalBefore = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
-      const aliceStreakBefore = (await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
-      )).currentStreak;
+      const bobBalMid = BigInt(
+        (await getTokenAccount(provider.connection, bobAta)).amount.toString()
+      );
+      const aliceBalBefore = BigInt(
+        (await getTokenAccount(provider.connection, aliceAta)).amount.toString()
+      );
+      const aliceStreakBefore = (
+        await program.account.participant.fetch(
+          participantPDA(streakKey, alice.publicKey)
+        )
+      ).currentStreak;
 
       // counter_verdict = true → dispute fails, original checkin confirmed
       await sendTx(
         ctx,
         await buildResolveIxs(
-          program, streakKey, alice.publicKey, 0, photoHash, phash,
-          true, bob.publicKey, bobAta, aliceAta, payer, usdcMintKp.publicKey,
+          program,
+          streakKey,
+          alice.publicKey,
+          0,
+          photoHash,
+          phash,
+          true,
+          bob.publicKey,
+          bobAta,
+          aliceAta,
+          payer,
+          usdcMintKp.publicKey
         ),
-        [payer],
+        [payer]
       );
 
       // Attestation is Finalized (not Overturned)
       const attest = await program.account.checkinAttestation.fetch(
-        attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
+        attestationPDA(participantPDA(streakKey, alice.publicKey), 0)
       );
       expect(attest.state).to.deep.equal({ finalized: {} });
 
       // Bob did not get his bond back
-      const bobBalAfter = BigInt((await getTokenAccount(provider.connection, bobAta)).amount.toString());
+      const bobBalAfter = BigInt(
+        (await getTokenAccount(provider.connection, bobAta)).amount.toString()
+      );
       expect(bobBalAfter).to.equal(bobBalMid);
 
       // Alice received the dispute bond as reward
-      const aliceBalAfter = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
+      const aliceBalAfter = BigInt(
+        (await getTokenAccount(provider.connection, aliceAta)).amount.toString()
+      );
       expect(aliceBalAfter).to.equal(aliceBalBefore + BigInt(disputeBond));
 
       // Alice's streak count was incremented by the resolution
-      const aliceStreakAfter = (await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
-      )).currentStreak;
+      const aliceStreakAfter = (
+        await program.account.participant.fetch(
+          participantPDA(streakKey, alice.publicKey)
+        )
+      ).currentStreak;
       expect(aliceStreakAfter).to.equal(aliceStreakBefore + 1);
     });
   });
@@ -813,47 +1016,55 @@ describe("commit", () => {
       await setTs(ctx, BASE_TS + 5_500);
       streakKey = streakPDA(alice.publicKey, NAME);
 
-      await sendTx(ctx, [
-        await program.methods
-          .createStreak({
-            name: NAME,
-            habitType: { write: {} },
-            habitPrompt: "Write something",
-            durationDays: 5,
-            stakeAmount: STAKE_AMOUNT,
-            penaltyPercent: PENALTY_PCT,
-            startTimestamp: new BN(START),
-            maxParticipants: 10,
-          })
-          .accounts({
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            creator: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [alice]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .createStreak({
+              name: NAME,
+              habitType: { write: {} },
+              habitPrompt: "Write something",
+              durationDays: 5,
+              stakeAmount: STAKE_AMOUNT,
+              penaltyPercent: PENALTY_PCT,
+              startTimestamp: new BN(START),
+              maxParticipants: 10,
+            })
+            .accounts({
+              streak: streakKey,
+              phashRegistry: phashRegistryPDA(streakKey),
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              creator: alice.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            })
+            .instruction(),
+        ],
+        [alice]
+      );
 
       await setTs(ctx, START - 10);
-      await sendTx(ctx, [
-        await program.methods
-          .joinStreak()
-          .accounts({
-            streak: streakKey,
-            participant: participantPDA(streakKey, alice.publicKey),
-            userTokenAccount: aliceAta,
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            user: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-          })
-          .instruction(),
-      ], [alice]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .joinStreak()
+            .accounts({
+              streak: streakKey,
+              participant: participantPDA(streakKey, alice.publicKey),
+              userTokenAccount: aliceAta,
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              user: alice.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+            })
+            .instruction(),
+        ],
+        [alice]
+      );
     });
 
     it("submits and finalizes day 0 with phash 0x0000000000000000", async () => {
@@ -864,26 +1075,35 @@ describe("commit", () => {
       await sendTx(
         ctx,
         await buildSubmitIxs(program, streakKey, alice, 0, photo0, phash0),
-        [alice],
+        [alice]
       );
 
       await advanceTs(ctx, ONE_DAY + 1);
       dayOneTs = START + ONE_DAY + 1;
 
-      await sendTx(ctx, [
-        await program.methods
-          .finalizeCheckin()
-          .accounts({
-            attestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
-            participant: participantPDA(streakKey, alice.publicKey),
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            caller: payer.publicKey,
-          })
-          .instruction(),
-      ], [payer]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .finalizeCheckin()
+            .accounts({
+              attestation: attestationPDA(
+                participantPDA(streakKey, alice.publicKey),
+                0
+              ),
+              participant: participantPDA(streakKey, alice.publicKey),
+              streak: streakKey,
+              phashRegistry: phashRegistryPDA(streakKey),
+              caller: payer.publicKey,
+            })
+            .instruction(),
+        ],
+        [payer]
+      );
 
-      const reg = await program.account.phashRegistry.fetch(phashRegistryPDA(streakKey));
+      const reg = await program.account.phashRegistry.fetch(
+        phashRegistryPDA(streakKey)
+      );
       expect(reg.hashes.length).to.equal(1);
       // Stored hash is phash0
       expect(reg.hashes[0].toString()).to.equal("0");
@@ -895,7 +1115,14 @@ describe("commit", () => {
       const photo1 = Buffer.alloc(32, 0x02);
 
       await setTs(ctx, START + ONE_DAY);
-      const ixs = await buildSubmitIxs(program, streakKey, alice, 1, photo1, phashReuse);
+      const ixs = await buildSubmitIxs(
+        program,
+        streakKey,
+        alice,
+        1,
+        photo1,
+        phashReuse
+      );
       await expectAnchorError(ctx, ixs, [alice], "PhotoReuseDetected");
     });
 
@@ -908,11 +1135,11 @@ describe("commit", () => {
       await sendTx(
         ctx,
         await buildSubmitIxs(program, streakKey, alice, 1, photo1, phashNew),
-        [alice],
+        [alice]
       );
 
       const attest = await program.account.checkinAttestation.fetch(
-        attestationPDA(participantPDA(streakKey, alice.publicKey), 1),
+        attestationPDA(participantPDA(streakKey, alice.publicKey), 1)
       );
       expect(attest.state).to.deep.equal({ pending: {} });
     });
@@ -931,48 +1158,59 @@ describe("commit", () => {
       await setTs(ctx, BASE_TS + 7_500);
       streakKey = streakPDA(bob.publicKey, NAME);
 
-      await sendTx(ctx, [
-        await program.methods
-          .createStreak({
-            name: NAME,
-            habitType: { design: {} },
-            habitPrompt: "Design something",
-            durationDays: 7,
-            stakeAmount: STAKE_AMOUNT,
-            penaltyPercent: PENALTY_PCT,
-            startTimestamp: new BN(START),
-            maxParticipants: 10,
-          })
-          .accounts({
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            creator: bob.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [bob]);
-
-      await setTs(ctx, START - 10);
-      for (const [user, ata] of [[alice, aliceAta], [bob, bobAta]] as [Keypair, PublicKey][]) {
-        await sendTx(ctx, [
+      await sendTx(
+        ctx,
+        [
           await program.methods
-            .joinStreak()
+            .createStreak({
+              name: NAME,
+              habitType: { design: {} },
+              habitPrompt: "Design something",
+              durationDays: 7,
+              stakeAmount: STAKE_AMOUNT,
+              penaltyPercent: PENALTY_PCT,
+              startTimestamp: new BN(START),
+              maxParticipants: 10,
+            })
             .accounts({
               streak: streakKey,
-              participant: participantPDA(streakKey, user.publicKey),
-              userTokenAccount: ata,
+              phashRegistry: phashRegistryPDA(streakKey),
               escrowTokenAccount: escrowPDA(streakKey),
               usdcMint: usdcMintKp.publicKey,
-              user: user.publicKey,
+              creator: bob.publicKey,
               tokenProgram: TOKEN_PROGRAM_ID,
               systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
             })
             .instruction(),
-        ], [user]);
+        ],
+        [bob]
+      );
+
+      await setTs(ctx, START - 10);
+      for (const [user, ata] of [
+        [alice, aliceAta],
+        [bob, bobAta],
+      ] as [Keypair, PublicKey][]) {
+        await sendTx(
+          ctx,
+          [
+            await program.methods
+              .joinStreak()
+              .accounts({
+                streak: streakKey,
+                participant: participantPDA(streakKey, user.publicKey),
+                userTokenAccount: ata,
+                escrowTokenAccount: escrowPDA(streakKey),
+                usdcMint: usdcMintKp.publicKey,
+                user: user.publicKey,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .instruction(),
+          ],
+          [user]
+        );
       }
     });
 
@@ -985,7 +1223,10 @@ describe("commit", () => {
           .accounts({
             streak: streakKey,
             participant: participantPDA(streakKey, alice.publicKey),
-            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
+            dayAttestation: attestationPDA(
+              participantPDA(streakKey, alice.publicKey),
+              0
+            ),
             caller: alice.publicKey,
           })
           .instruction(),
@@ -997,29 +1238,44 @@ describe("commit", () => {
       // elapsed=2, current_streak=0 < 2 ✓; slash_eligible_from = START + 86400, now > that ✓
       await setTs(ctx, START + TWO_DAYS + 1);
 
-      const stakeBefore = (await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
-      )).stakeLocked.toNumber();
-      const poolBefore = (await program.account.streak.fetch(streakKey)).totalPool.toNumber();
+      const stakeBefore = (
+        await program.account.participant.fetch(
+          participantPDA(streakKey, alice.publicKey)
+        )
+      ).stakeLocked.toNumber();
+      const poolBefore = (
+        await program.account.streak.fetch(streakKey)
+      ).totalPool.toNumber();
 
-      await sendTx(ctx, [
-        await program.methods
-          .slashMissed()
-          .accounts({
-            streak: streakKey,
-            participant: participantPDA(streakKey, alice.publicKey),
-            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
-            caller: payer.publicKey,
-          })
-          .instruction(),
-      ], [payer]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .slashMissed()
+            .accounts({
+              streak: streakKey,
+              participant: participantPDA(streakKey, alice.publicKey),
+              dayAttestation: attestationPDA(
+                participantPDA(streakKey, alice.publicKey),
+                0
+              ),
+              caller: payer.publicKey,
+            })
+            .instruction(),
+        ],
+        [payer]
+      );
 
-      const stakeAfter = (await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
-      )).stakeLocked.toNumber();
-      const poolAfter = (await program.account.streak.fetch(streakKey)).totalPool.toNumber();
+      const stakeAfter = (
+        await program.account.participant.fetch(
+          participantPDA(streakKey, alice.publicKey)
+        )
+      ).stakeLocked.toNumber();
+      const poolAfter = (
+        await program.account.streak.fetch(streakKey)
+      ).totalPool.toNumber();
 
-      const expectedSlash = Math.floor(stakeBefore * PENALTY_PCT / 100); // 200_000
+      const expectedSlash = Math.floor((stakeBefore * PENALTY_PCT) / 100); // 200_000
       expect(stakeAfter).to.equal(stakeBefore - expectedSlash);
       expect(poolAfter).to.equal(poolBefore + expectedSlash);
     });
@@ -1038,49 +1294,60 @@ describe("commit", () => {
       await setTs(ctx, BASE_TS + 9_500);
       streakKey = streakPDA(alice.publicKey, NAME);
 
-      await sendTx(ctx, [
-        await program.methods
-          .createStreak({
-            name: NAME,
-            habitType: { code: {} },
-            habitPrompt: "Code",
-            durationDays: 7,
-            stakeAmount: STAKE_AMOUNT,
-            penaltyPercent: PENALTY_PCT,
-            startTimestamp: new BN(START),
-            maxParticipants: 10,
-          })
-          .accounts({
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            creator: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [alice]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .createStreak({
+              name: NAME,
+              habitType: { code: {} },
+              habitPrompt: "Code",
+              durationDays: 7,
+              stakeAmount: STAKE_AMOUNT,
+              penaltyPercent: PENALTY_PCT,
+              startTimestamp: new BN(START),
+              maxParticipants: 10,
+            })
+            .accounts({
+              streak: streakKey,
+              phashRegistry: phashRegistryPDA(streakKey),
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              creator: alice.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            })
+            .instruction(),
+        ],
+        [alice]
+      );
 
       await setTs(ctx, START - 10);
 
-      for (const [user, ata] of [[alice, aliceAta], [bob, bobAta]] as [Keypair, PublicKey][]) {
-        await sendTx(ctx, [
-          await program.methods
-            .joinStreak()
-            .accounts({
-              streak: streakKey,
-              participant: participantPDA(streakKey, user.publicKey),
-              userTokenAccount: ata,
-              escrowTokenAccount: escrowPDA(streakKey),
-              usdcMint: usdcMintKp.publicKey,
-              user: user.publicKey,
-              tokenProgram: TOKEN_PROGRAM_ID,
-              systemProgram: SystemProgram.programId,
-            })
-            .instruction(),
-        ], [user]);
+      for (const [user, ata] of [
+        [alice, aliceAta],
+        [bob, bobAta],
+      ] as [Keypair, PublicKey][]) {
+        await sendTx(
+          ctx,
+          [
+            await program.methods
+              .joinStreak()
+              .accounts({
+                streak: streakKey,
+                participant: participantPDA(streakKey, user.publicKey),
+                userTokenAccount: ata,
+                escrowTokenAccount: escrowPDA(streakKey),
+                usdcMint: usdcMintKp.publicKey,
+                user: user.publicKey,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .instruction(),
+          ],
+          [user]
+        );
       }
     });
 
@@ -1093,7 +1360,12 @@ describe("commit", () => {
         executable: false,
       });
       const charlieAta = await fundedAta(
-        ctx, payer, usdcMintKp.publicKey, payer, charlie.publicKey, 5_000_000n,
+        ctx,
+        payer,
+        usdcMintKp.publicKey,
+        payer,
+        charlie.publicKey,
+        5_000_000n
       );
 
       await setTs(ctx, START + 1); // past start
@@ -1125,7 +1397,7 @@ describe("commit", () => {
       await sendTx(
         ctx,
         await buildSubmitIxs(program, streakKey, alice, 0, photoHash, phash),
-        [alice],
+        [alice]
       );
 
       // Alice tries to dispute her own attestation
@@ -1135,7 +1407,10 @@ describe("commit", () => {
           .accounts({
             streak: streakKey,
             targetParticipant: participantPDA(streakKey, alice.publicKey),
-            attestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
+            attestation: attestationPDA(
+              participantPDA(streakKey, alice.publicKey),
+              0
+            ),
             disputerParticipant: participantPDA(streakKey, alice.publicKey), // same as target
             disputerTokenAccount: aliceAta,
             escrowTokenAccount: escrowPDA(streakKey),
@@ -1155,7 +1430,10 @@ describe("commit", () => {
         await program.methods
           .finalizeCheckin()
           .accounts({
-            attestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
+            attestation: attestationPDA(
+              participantPDA(streakKey, alice.publicKey),
+              0
+            ),
             participant: participantPDA(streakKey, alice.publicKey),
             streak: streakKey,
             phashRegistry: phashRegistryPDA(streakKey),
@@ -1192,7 +1470,7 @@ describe("commit", () => {
         completionMint.publicKey,
         bob.publicKey,
         false,
-        TOKEN_2022_PROGRAM_ID,
+        TOKEN_2022_PROGRAM_ID
       );
 
       const ixs = [
@@ -1216,7 +1494,12 @@ describe("commit", () => {
           })
           .instruction(),
       ];
-      await expectAnchorError(ctx, ixs, [bob, completionMint], "StreakIncomplete");
+      await expectAnchorError(
+        ctx,
+        ixs,
+        [bob, completionMint],
+        "StreakIncomplete"
+      );
     });
   });
 
@@ -1234,77 +1517,102 @@ describe("commit", () => {
       await setTs(ctx, BASE_TS + 11_500);
       streakKey = streakPDA(bob.publicKey, NAME);
 
-      await sendTx(ctx, [
-        await program.methods
-          .createStreak({
-            name: NAME,
-            habitType: { gym: {} },
-            habitPrompt: "Show gym activity",
-            durationDays: DURATION_DAYS,
-            stakeAmount: STAKE_AMOUNT,
-            penaltyPercent: PENALTY_PCT,
-            startTimestamp: new BN(START),
-            maxParticipants: 10,
-          })
-          .accounts({
-            streak: streakKey,
-            phashRegistry: phashRegistryPDA(streakKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            usdcMint: usdcMintKp.publicKey,
-            creator: bob.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-            systemProgram: SystemProgram.programId,
-            rent: anchor.web3.SYSVAR_RENT_PUBKEY,
-          })
-          .instruction(),
-      ], [bob]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .createStreak({
+              name: NAME,
+              habitType: { gym: {} },
+              habitPrompt: "Show gym activity",
+              durationDays: DURATION_DAYS,
+              stakeAmount: STAKE_AMOUNT,
+              penaltyPercent: PENALTY_PCT,
+              startTimestamp: new BN(START),
+              maxParticipants: 10,
+            })
+            .accounts({
+              streak: streakKey,
+              phashRegistry: phashRegistryPDA(streakKey),
+              escrowTokenAccount: escrowPDA(streakKey),
+              usdcMint: usdcMintKp.publicKey,
+              creator: bob.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+              systemProgram: SystemProgram.programId,
+              rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+            })
+            .instruction(),
+        ],
+        [bob]
+      );
 
       // alice and bob both join
       await setTs(ctx, START - 10);
-      for (const [user, ata] of [[alice, aliceAta], [bob, bobAta]] as [Keypair, PublicKey][]) {
-        await sendTx(ctx, [
-          await program.methods
-            .joinStreak()
-            .accounts({
-              streak: streakKey,
-              participant: participantPDA(streakKey, user.publicKey),
-              userTokenAccount: ata,
-              escrowTokenAccount: escrowPDA(streakKey),
-              usdcMint: usdcMintKp.publicKey,
-              user: user.publicKey,
-              tokenProgram: TOKEN_PROGRAM_ID,
-              systemProgram: SystemProgram.programId,
-            })
-            .instruction(),
-        ], [user]);
+      for (const [user, ata] of [
+        [alice, aliceAta],
+        [bob, bobAta],
+      ] as [Keypair, PublicKey][]) {
+        await sendTx(
+          ctx,
+          [
+            await program.methods
+              .joinStreak()
+              .accounts({
+                streak: streakKey,
+                participant: participantPDA(streakKey, user.publicKey),
+                userTokenAccount: ata,
+                escrowTokenAccount: escrowPDA(streakKey),
+                usdcMint: usdcMintKp.publicKey,
+                user: user.publicKey,
+                tokenProgram: TOKEN_PROGRAM_ID,
+                systemProgram: SystemProgram.programId,
+              })
+              .instruction(),
+          ],
+          [user]
+        );
       }
 
       // slash alice twice (day 0 and day 1 missed) — she ends with 64% of stake
       await setTs(ctx, START + TWO_DAYS + 1);
-      await sendTx(ctx, [
-        await program.methods
-          .slashMissed()
-          .accounts({
-            streak: streakKey,
-            participant: participantPDA(streakKey, alice.publicKey),
-            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 0),
-            caller: payer.publicKey,
-          })
-          .instruction(),
-      ], [payer]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .slashMissed()
+            .accounts({
+              streak: streakKey,
+              participant: participantPDA(streakKey, alice.publicKey),
+              dayAttestation: attestationPDA(
+                participantPDA(streakKey, alice.publicKey),
+                0
+              ),
+              caller: payer.publicKey,
+            })
+            .instruction(),
+        ],
+        [payer]
+      );
 
       await setTs(ctx, START + TWO_DAYS + ONE_DAY + 1);
-      await sendTx(ctx, [
-        await program.methods
-          .slashMissed()
-          .accounts({
-            streak: streakKey,
-            participant: participantPDA(streakKey, alice.publicKey),
-            dayAttestation: attestationPDA(participantPDA(streakKey, alice.publicKey), 1),
-            caller: payer.publicKey,
-          })
-          .instruction(),
-      ], [payer]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .slashMissed()
+            .accounts({
+              streak: streakKey,
+              participant: participantPDA(streakKey, alice.publicKey),
+              dayAttestation: attestationPDA(
+                participantPDA(streakKey, alice.publicKey),
+                1
+              ),
+              caller: payer.publicKey,
+            })
+            .instruction(),
+        ],
+        [payer]
+      );
     });
 
     it("rejects withdraw_failed before streak end time", async () => {
@@ -1331,31 +1639,41 @@ describe("commit", () => {
       // move past streak end
       await setTs(ctx, START + DURATION_DAYS * ONE_DAY + 1);
 
-      const stakeBefore = (await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
-      )).stakeLocked.toNumber();
+      const stakeBefore = (
+        await program.account.participant.fetch(
+          participantPDA(streakKey, alice.publicKey)
+        )
+      ).stakeLocked.toNumber();
 
-      const aliceBalBefore = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
+      const aliceBalBefore = BigInt(
+        (await getTokenAccount(provider.connection, aliceAta)).amount.toString()
+      );
 
-      await sendTx(ctx, [
-        await program.methods
-          .withdrawFailed()
-          .accounts({
-            streak: streakKey,
-            participant: participantPDA(streakKey, alice.publicKey),
-            escrowTokenAccount: escrowPDA(streakKey),
-            userTokenAccount: aliceAta,
-            usdcMint: usdcMintKp.publicKey,
-            user: alice.publicKey,
-            tokenProgram: TOKEN_PROGRAM_ID,
-          })
-          .instruction(),
-      ], [alice]);
+      await sendTx(
+        ctx,
+        [
+          await program.methods
+            .withdrawFailed()
+            .accounts({
+              streak: streakKey,
+              participant: participantPDA(streakKey, alice.publicKey),
+              escrowTokenAccount: escrowPDA(streakKey),
+              userTokenAccount: aliceAta,
+              usdcMint: usdcMintKp.publicKey,
+              user: alice.publicKey,
+              tokenProgram: TOKEN_PROGRAM_ID,
+            })
+            .instruction(),
+        ],
+        [alice]
+      );
 
-      const aliceBalAfter = BigInt((await getTokenAccount(provider.connection, aliceAta)).amount.toString());
+      const aliceBalAfter = BigInt(
+        (await getTokenAccount(provider.connection, aliceAta)).amount.toString()
+      );
 
       const participantAfter = await program.account.participant.fetch(
-        participantPDA(streakKey, alice.publicKey),
+        participantPDA(streakKey, alice.publicKey)
       );
 
       // alice should have received exactly her remaining stake back

@@ -1,12 +1,18 @@
 // POST /api/verify-checkin — photo verification via Groq (Llama 4 Scout), returns signed attestation
-import { NextRequest, NextResponse } from 'next/server';
-import { sha256, buildAttestationMessage, signAttestation, getVerifierPubkeyBytes, decodeBase58Pubkey } from '@/app/lib/attestation';
-import { computePhash, phashToHex } from '@/app/lib/phash';
-import { HABIT_PROMPTS, type HabitType } from '@/app/lib/habits';
-import { sanitizeHabitPrompt, injectHabitPrompt } from '@/app/lib/sanitize';
-import { verifyWithGroq } from '@/app/lib/moonshot';
-import { withX402Payment, type RouteHandler } from '@/app/lib/x402-middleware';
-import bs58 from 'bs58';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  sha256,
+  buildAttestationMessage,
+  signAttestation,
+  getVerifierPubkeyBytes,
+  decodeBase58Pubkey,
+} from "@/app/lib/attestation";
+import { computePhash, phashToHex } from "@/app/lib/phash";
+import { HABIT_PROMPTS, type HabitType } from "@/app/lib/habits";
+import { sanitizeHabitPrompt, injectHabitPrompt } from "@/app/lib/sanitize";
+import { verifyWithGroq } from "@/app/lib/moonshot";
+import { withX402Payment, type RouteHandler } from "@/app/lib/x402-middleware";
+import bs58 from "bs58";
 
 interface CheckinRequest {
   participant_pubkey: string;
@@ -17,37 +23,64 @@ interface CheckinRequest {
   photo_base64: string;
 }
 
-const HABIT_TYPES = new Set<HabitType>(['Code', 'Read', 'Write', 'Design', 'Gym']);
+const HABIT_TYPES = new Set<HabitType>([
+  "Code",
+  "Read",
+  "Write",
+  "Design",
+  "Gym",
+]);
 
 async function handler(req: NextRequest): Promise<NextResponse> {
   let body: CheckinRequest;
   try {
     body = (await req.json()) as CheckinRequest;
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { participant_pubkey, streak_pubkey, day_index, habit_type, habit_prompt, photo_base64 } =
-    body;
+  const {
+    participant_pubkey,
+    streak_pubkey,
+    day_index,
+    habit_type,
+    habit_prompt,
+    photo_base64,
+  } = body;
 
-  if (!participant_pubkey || !streak_pubkey || day_index === undefined || !habit_type || !photo_base64) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  if (
+    !participant_pubkey ||
+    !streak_pubkey ||
+    day_index === undefined ||
+    !habit_type ||
+    !photo_base64
+  ) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
   }
 
   if (!HABIT_TYPES.has(habit_type)) {
-    return NextResponse.json({ error: 'Invalid habit_type' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid habit_type" }, { status: 400 });
   }
 
   if (habit_prompt) {
     const sanitized = sanitizeHabitPrompt(habit_prompt);
     if (sanitized === null) {
-      return NextResponse.json({ error: 'Invalid habit_prompt content' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid habit_prompt content" },
+        { status: 400 }
+      );
     }
   }
 
-  const imageBuffer = Buffer.from(photo_base64, 'base64');
+  const imageBuffer = Buffer.from(photo_base64, "base64");
   if (imageBuffer.length > 4 * 1024 * 1024) {
-    return NextResponse.json({ error: 'Image too large (max 4MB)' }, { status: 400 });
+    return NextResponse.json(
+      { error: "Image too large (max 4MB)" },
+      { status: 400 }
+    );
   }
 
   const photoHash = sha256(imageBuffer);
@@ -62,7 +95,11 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   const { verdict, reason } = await verifyWithGroq(prompt, photo_base64);
 
   if (!verdict) {
-    return NextResponse.json({ verdict: false, reason, verifier_signature: null });
+    return NextResponse.json({
+      verdict: false,
+      reason,
+      verifier_signature: null,
+    });
   }
 
   const reasonHash = sha256(reason);
@@ -86,16 +123,16 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     verdict: true,
     reason,
-    photo_hash: Buffer.from(photoHash).toString('hex'),
+    photo_hash: Buffer.from(photoHash).toString("hex"),
     phash: phashHex,
-    reason_hash: Buffer.from(reasonHash).toString('hex'),
-    verifier_signature: Buffer.from(signature).toString('hex'),
+    reason_hash: Buffer.from(reasonHash).toString("hex"),
+    verifier_signature: Buffer.from(signature).toString("hex"),
     verifier_pubkey: bs58.encode(verifierPubkeyBytes),
   });
 }
 
 export const POST: RouteHandler = withX402Payment(handler, {
   amount: 1000,
-  recipient: process.env.VERIFICATION_FEE_WALLET ?? '',
-  description: 'AI verification for daily habit check-in',
+  recipient: process.env.VERIFICATION_FEE_WALLET ?? "",
+  description: "AI verification for daily habit check-in",
 });

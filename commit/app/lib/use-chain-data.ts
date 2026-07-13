@@ -1,27 +1,43 @@
-'use client';
+"use client";
 // Hooks for fetching on-chain Streak, Participant, Attestation, and StreakProof data.
-import { useEffect, useState, useCallback } from 'react';
-import { PublicKey } from '@solana/web3.js';
-import { getProgram, getConnection } from './program';
-import { findParticipantPda, findAttestationPda, findStreakProofPda } from './solana';
-import { HabitType, AttestationState, type Streak, type Participant, type CheckinAttestation, type StreakProof } from './types';
+import { useEffect, useState, useCallback } from "react";
+import { PublicKey } from "@solana/web3.js";
+import { getProgram, getConnection } from "./program";
+import {
+  findParticipantPda,
+  findAttestationPda,
+  findStreakProofPda,
+} from "./solana";
+import {
+  HabitType,
+  AttestationState,
+  type Streak,
+  type Participant,
+  type CheckinAttestation,
+  type StreakProof,
+} from "./types";
 
 function decodeHabitType(raw: unknown): HabitType {
-  if (typeof raw !== 'object' || raw === null) return HabitType.Code;
+  if (typeof raw !== "object" || raw === null) return HabitType.Code;
   const keys = Object.keys(raw as object);
   const map: Record<string, HabitType> = {
-    code: HabitType.Code, read: HabitType.Read, write: HabitType.Write,
-    design: HabitType.Design, gym: HabitType.Gym,
+    code: HabitType.Code,
+    read: HabitType.Read,
+    write: HabitType.Write,
+    design: HabitType.Design,
+    gym: HabitType.Gym,
   };
   return map[keys[0]] ?? HabitType.Code;
 }
 
 function decodeAttestationState(raw: unknown): AttestationState {
-  if (typeof raw !== 'object' || raw === null) return AttestationState.Pending;
+  if (typeof raw !== "object" || raw === null) return AttestationState.Pending;
   const key = Object.keys(raw as object)[0];
   const map: Record<string, AttestationState> = {
-    pending: AttestationState.Pending, disputed: AttestationState.Disputed,
-    finalized: AttestationState.Finalized, overturned: AttestationState.Overturned,
+    pending: AttestationState.Pending,
+    disputed: AttestationState.Disputed,
+    finalized: AttestationState.Finalized,
+    overturned: AttestationState.Overturned,
   };
   return map[key] ?? AttestationState.Pending;
 }
@@ -101,7 +117,9 @@ function rawToStreakProof(pubkey: string, raw: any): StreakProof {
     stakeLamports: raw.stakeLamports.toNumber(),
     poolShareLamports: raw.poolShareLamports.toNumber(),
     completedAt: raw.completedAt.toNumber(),
-    attestationHashes: (raw.attestationHashes as number[][]).map((h) => Array.from(h)),
+    attestationHashes: (raw.attestationHashes as number[][]).map((h) =>
+      Array.from(h)
+    ),
     disputesFiledAgainst: raw.disputesFiledAgainst,
     disputesUpheld: raw.disputesUpheld,
     bump: raw.bump,
@@ -119,30 +137,41 @@ export function useStreak(pubkey: string | null) {
     setError(null);
     try {
       const program = getProgram();
-      const raw = await program.account['streak'].fetch(new PublicKey(pubkey));
+      const raw = await program.account["streak"].fetch(new PublicKey(pubkey));
       setStreak(rawToStreak(pubkey, raw));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch streak');
+      setError(err instanceof Error ? err.message : "Failed to fetch streak");
     } finally {
       setLoading(false);
     }
   }, [pubkey]);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   return { streak, loading, error, refetch: fetch };
 }
 
-export function useParticipant(streakPubkey: string | null, userAddress: string | null) {
+export function useParticipant(
+  streakPubkey: string | null,
+  userAddress: string | null
+) {
   const [participant, setParticipant] = useState<Participant | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetch = useCallback(async () => {
-    if (!streakPubkey || !userAddress) { setParticipant(null); return; }
+    if (!streakPubkey || !userAddress) {
+      setParticipant(null);
+      return;
+    }
     setLoading(true);
-    const [pda] = findParticipantPda(new PublicKey(streakPubkey), new PublicKey(userAddress));
-    getProgram().account['participant']
-      .fetchNullable(pda)
+    const [pda] = findParticipantPda(
+      new PublicKey(streakPubkey),
+      new PublicKey(userAddress)
+    );
+    getProgram()
+      .account["participant"].fetchNullable(pda)
       .then((raw) => {
         setParticipant(raw ? rawToParticipant(pda.toBase58(), raw) : null);
       })
@@ -150,7 +179,9 @@ export function useParticipant(streakPubkey: string | null, userAddress: string 
       .finally(() => setLoading(false));
   }, [streakPubkey, userAddress]);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   return { participant, loading, refetch: fetch };
 }
@@ -163,7 +194,7 @@ export function useStreakParticipants(streakPubkey: string | null) {
     if (!streakPubkey) return;
     setLoading(true);
     getProgram()
-      .account['participant'].all([
+      .account["participant"].all([
         {
           memcmp: {
             offset: 8 + 32, // discriminator + user pubkey offset → streak field
@@ -172,7 +203,11 @@ export function useStreakParticipants(streakPubkey: string | null) {
         },
       ])
       .then((accounts) => {
-        setParticipants(accounts.map((a) => rawToParticipant(a.publicKey.toBase58(), a.account)));
+        setParticipants(
+          accounts.map((a) =>
+            rawToParticipant(a.publicKey.toBase58(), a.account)
+          )
+        );
       })
       .catch(() => setParticipants([]))
       .finally(() => setLoading(false));
@@ -186,7 +221,7 @@ export function useStreakParticipants(streakPubkey: string | null) {
 // Accepts participants from the caller to avoid a redundant second getProgramAccounts call.
 export function useStreakAttestations(
   participants: Participant[],
-  currentDayIndex: number,
+  currentDayIndex: number
 ) {
   const [attestations, setAttestations] = useState<CheckinAttestation[]>([]);
   const [loading, setLoading] = useState(false);
@@ -210,7 +245,11 @@ export function useStreakAttestations(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (getProgram().account['checkinAttestation'].fetchMultiple(pdas) as Promise<(any | null)[]>)
+    (
+      getProgram().account["checkinAttestation"].fetchMultiple(pdas) as Promise<
+        (any | null)[]
+      >
+    )
       .then((raws) => {
         const results: CheckinAttestation[] = [];
         raws.forEach((raw, i) => {
@@ -222,20 +261,24 @@ export function useStreakAttestations(
       .finally(() => setLoading(false));
   }, [participants, currentDayIndex]);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   return { attestations, loading, refetch: fetch };
 }
 
 export function useAttestation(pubkey: string | null) {
-  const [attestation, setAttestation] = useState<CheckinAttestation | null>(null);
+  const [attestation, setAttestation] = useState<CheckinAttestation | null>(
+    null
+  );
   const [loading, setLoading] = useState(!!pubkey);
 
   useEffect(() => {
     if (!pubkey) return;
     setLoading(true);
     getProgram()
-      .account['checkinAttestation'].fetchNullable(new PublicKey(pubkey))
+      .account["checkinAttestation"].fetchNullable(new PublicKey(pubkey))
       .then((raw) => setAttestation(raw ? rawToAttestation(pubkey, raw) : null))
       .catch(() => setAttestation(null))
       .finally(() => setLoading(false));
@@ -256,17 +299,24 @@ export function useStreakProof(mint: string | null) {
     // StreakProof PDA: seeds = ["proof", streak, owner]
     // We fetch by mint pubkey from the proof account's mint field
     getProgram()
-      .account['streakProof'].all([
+      .account["streakProof"].all([
         { memcmp: { offset: 8 + 32, bytes: mint } }, // mint field after owner
       ])
       .then((accounts) => {
         if (accounts.length > 0) {
-          setProof(rawToStreakProof(accounts[0].publicKey.toBase58(), accounts[0].account));
+          setProof(
+            rawToStreakProof(
+              accounts[0].publicKey.toBase58(),
+              accounts[0].account
+            )
+          );
         } else {
-          setError('Proof not found for this mint');
+          setError("Proof not found for this mint");
         }
       })
-      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to fetch proof'))
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to fetch proof")
+      )
       .finally(() => setLoading(false));
   }, [mint]);
 
@@ -280,8 +330,10 @@ export function useAllStreaks() {
   const fetch = useCallback(async () => {
     setLoading(true);
     try {
-      const accounts = await getProgram().account['streak'].all();
-      setStreaks(accounts.map((a) => rawToStreak(a.publicKey.toBase58(), a.account)));
+      const accounts = await getProgram().account["streak"].all();
+      setStreaks(
+        accounts.map((a) => rawToStreak(a.publicKey.toBase58(), a.account))
+      );
     } catch {
       setStreaks([]);
     } finally {
@@ -289,7 +341,9 @@ export function useAllStreaks() {
     }
   }, []);
 
-  useEffect(() => { void fetch(); }, [fetch]);
+  useEffect(() => {
+    void fetch();
+  }, [fetch]);
 
   return { streaks, loading, refetch: fetch };
 }
@@ -300,16 +354,23 @@ export function useUserParticipants(userAddress: string | null) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!userAddress) { setParticipants([]); return; }
+    if (!userAddress) {
+      setParticipants([]);
+      return;
+    }
     setLoading(true);
     try {
       const userPk = new PublicKey(userAddress);
       getProgram()
-        .account['participant'].all([
+        .account["participant"].all([
           { memcmp: { offset: 8, bytes: userPk.toBase58() } },
         ])
         .then((accounts) => {
-          setParticipants(accounts.map((a) => rawToParticipant(a.publicKey.toBase58(), a.account)));
+          setParticipants(
+            accounts.map((a) =>
+              rawToParticipant(a.publicKey.toBase58(), a.account)
+            )
+          );
         })
         .catch(() => setParticipants([]))
         .finally(() => setLoading(false));
@@ -329,18 +390,23 @@ export function useUserStreaks(userAddress: string | null) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (participants.length === 0) { setStreaks([]); return; }
+    if (participants.length === 0) {
+      setStreaks([]);
+      return;
+    }
     setLoading(true);
     const streakKeys = [...new Set(participants.map((p) => p.streak))];
     Promise.all(
       streakKeys.map((key) =>
         getProgram()
-          .account['streak'].fetchNullable(new PublicKey(key))
+          .account["streak"].fetchNullable(new PublicKey(key))
           .then((raw) => (raw ? rawToStreak(key, raw) : null))
           .catch(() => null)
       )
     )
-      .then((results) => setStreaks(results.filter((s): s is Streak => s !== null)))
+      .then((results) =>
+        setStreaks(results.filter((s): s is Streak => s !== null))
+      )
       .finally(() => setLoading(false));
   }, [participants]);
 

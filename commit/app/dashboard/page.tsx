@@ -1,18 +1,22 @@
-'use client';
+"use client";
 
-import { useWallet } from '@/app/lib/wallet-context';
-import Link from 'next/link';
-import { Plus, Loader2 } from 'lucide-react';
-import { Navbar } from '../components/Navbar';
-import { StreakCard } from '../components/StreakCard';
-import { useAllStreaks, useUserStreaks } from '../lib/use-chain-data';
+import { useWallet } from "@/app/lib/wallet-context";
+import Link from "next/link";
+import { Plus, Loader2 } from "lucide-react";
+import { Navbar } from "../components/Navbar";
+import { StreakCard } from "../components/StreakCard";
+import { useAllStreaks, useUserStreaks } from "../lib/use-chain-data";
 
 export default function DashboardPage() {
   const { connected, connecting, publicKey, connect } = useWallet();
   const address = publicKey?.toBase58() ?? null;
 
   const { streaks: allStreaks, loading: allLoading } = useAllStreaks();
-  const { streaks: myStreaks, participants, loading: myLoading } = useUserStreaks(address);
+  const {
+    streaks: myStreaks,
+    participants,
+    loading: myLoading,
+  } = useUserStreaks(address);
 
   const myStreakKeys = new Set(myStreaks.map((s) => s.pubkey));
   const browseStreaks = allStreaks.filter((s) => !myStreakKeys.has(s.pubkey));
@@ -27,7 +31,10 @@ export default function DashboardPage() {
         </div>
         <Navbar />
         <div className="relative z-10 flex items-center justify-center pt-32">
-          <Loader2 size={32} className="animate-spin text-orchid-500 drop-shadow-[0_0_15px_rgba(202,121,165,0.8)]" />
+          <Loader2
+            size={32}
+            className="animate-spin text-orchid-500 drop-shadow-[0_0_15px_rgba(202,121,165,0.8)]"
+          />
         </div>
       </div>
     );
@@ -43,9 +50,12 @@ export default function DashboardPage() {
         <Navbar />
         <div className="relative z-10 flex flex-col items-center justify-center pt-40 px-6 text-center">
           <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-3xl p-10 max-w-md shadow-2xl">
-            <h1 className="text-3xl font-bold text-white mb-4">Connect to get started</h1>
+            <h1 className="text-3xl font-bold text-white mb-4">
+              Connect to get started
+            </h1>
             <p className="text-base text-smoke-500 mb-10">
-              Connect your wallet to view your active streaks, check in daily, and claim your rewards.
+              Connect your wallet to view your active streaks, check in daily,
+              and claim your rewards.
             </p>
             <button
               onClick={() => void connect()}
@@ -70,7 +80,7 @@ export default function DashboardPage() {
       </div>
 
       <Navbar />
-      
+
       <div className="relative z-10 mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-12 bg-white/5 backdrop-blur-md border border-grape-400/10 rounded-2xl p-6 shadow-xl">
@@ -90,7 +100,10 @@ export default function DashboardPage() {
             className="group relative overflow-hidden flex items-center justify-center gap-2 bg-grape-500 text-white rounded-xl px-6 py-3 text-sm font-bold transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(94,84,142,0.5)]"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-hover:animate-[shimmer_2s_infinite]"></div>
-            <Plus size={18} className="relative transition-transform group-hover:rotate-90" />
+            <Plus
+              size={18}
+              className="relative transition-transform group-hover:rotate-90"
+            />
             <span className="relative hidden sm:inline">Create New Streak</span>
             <span className="relative sm:hidden">New Streak</span>
           </Link>
@@ -102,14 +115,18 @@ export default function DashboardPage() {
           {myLoading ? (
             <div className="flex items-center gap-3 text-smoke-500 py-8 bg-white/5 rounded-2xl justify-center border border-white/5 backdrop-blur-sm">
               <Loader2 size={20} className="animate-spin text-orchid-500" />
-              <span className="text-sm font-medium tracking-wide">Syncing your data...</span>
+              <span className="text-sm font-medium tracking-wide">
+                Syncing your data...
+              </span>
             </div>
           ) : myStreaks.length === 0 ? (
             <div className="bg-white/5 backdrop-blur-xl border border-grape-400/20 rounded-2xl p-10 text-center shadow-lg">
               <div className="w-16 h-16 bg-grape-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-grape-500/30">
                 <Plus size={24} className="text-lilac-400" />
               </div>
-              <p className="text-lg text-smoke-500 mb-6">You haven&apos;t joined any streaks yet.</p>
+              <p className="text-lg text-smoke-500 mb-6">
+                You haven&apos;t joined any streaks yet.
+              </p>
               <Link
                 href="/streak/create"
                 className="inline-flex items-center gap-2 bg-white/10 border border-grape-400/40 text-white hover:bg-grape-500 hover:border-grape-500 rounded-xl px-6 py-3 text-sm font-bold transition-all hover:scale-105 active:scale-95 hover:shadow-[0_0_20px_rgba(94,84,142,0.5)]"
@@ -121,23 +138,35 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {myStreaks.map((streak) => {
-                const participant = participants.find((p) => p.streak === streak.pubkey);
+                const participant = participants.find(
+                  (p) => p.streak === streak.pubkey
+                );
                 const started = streak.startTimestamp <= now;
-                const streakEnded = now >= streak.startTimestamp + streak.durationDays * 86400;
-                const dayIndex = started ? Math.floor((now - streak.startTimestamp) / 86400) : 0;
+                const streakEnded =
+                  now >= streak.startTimestamp + streak.durationDays * 86400;
+                const dayIndex = started
+                  ? Math.floor((now - streak.startTimestamp) / 86400)
+                  : 0;
                 const daysPassed = Math.min(dayIndex + 1, streak.durationDays);
                 // Treat as checked-in if finalized OR if a pending attestation was submitted today
                 // (lastCheckinTimestamp is updated by submit_checkin_with_attestation; lastFinalizedDay
                 // only updates after the 24h dispute window via finalize_checkin)
                 const checkedInToday = participant
-                  ? (participant.currentStreak > 0 && participant.lastFinalizedDay >= dayIndex) ||
-                    participant.lastCheckinTimestamp >= streak.startTimestamp + dayIndex * 86400
+                  ? (participant.currentStreak > 0 &&
+                      participant.lastFinalizedDay >= dayIndex) ||
+                    participant.lastCheckinTimestamp >=
+                      streak.startTimestamp + dayIndex * 86400
                   : false;
                 return (
                   <StreakCard
                     key={streak.pubkey}
                     streak={streak}
-                    showCheckin={started && !streakEnded && !checkedInToday && !!participant?.isActive}
+                    showCheckin={
+                      started &&
+                      !streakEnded &&
+                      !checkedInToday &&
+                      !!participant?.isActive
+                    }
                     currentDay={daysPassed}
                     isParticipant
                   />
@@ -153,15 +182,19 @@ export default function DashboardPage() {
             <h2 className="text-2xl font-bold text-white">Network Streaks</h2>
             <div className="h-px flex-1 bg-gradient-to-r from-grape-400/30 to-transparent"></div>
           </div>
-          
+
           {allLoading ? (
             <div className="flex items-center gap-3 text-smoke-500 py-8 bg-white/5 rounded-2xl justify-center border border-white/5 backdrop-blur-sm">
               <Loader2 size={20} className="animate-spin text-orchid-500" />
-              <span className="text-sm font-medium tracking-wide">Loading network protocol...</span>
+              <span className="text-sm font-medium tracking-wide">
+                Loading network protocol...
+              </span>
             </div>
           ) : browseStreaks.length === 0 ? (
             <div className="text-center py-12 text-smoke-600 bg-white/5 border border-white/5 rounded-2xl backdrop-blur-sm">
-              <p className="text-lg mb-2">No open streaks available in the network.</p>
+              <p className="text-lg mb-2">
+                No open streaks available in the network.
+              </p>
               <p className="text-sm">Be the pioneer and start one!</p>
             </div>
           ) : (

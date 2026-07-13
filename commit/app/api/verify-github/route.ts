@@ -1,10 +1,16 @@
 // POST /api/verify-github — GitHub activity auto-verification for the Code habit
-import { NextRequest, NextResponse } from 'next/server';
-import { createHash } from 'node:crypto';
-import { Octokit } from '@octokit/rest';
-import { sha256, buildAttestationMessage, signAttestation, getVerifierPubkeyBytes, decodeBase58Pubkey } from '@/app/lib/attestation';
-import { withX402Payment, type RouteHandler } from '@/app/lib/x402-middleware';
-import bs58 from 'bs58';
+import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
+import { Octokit } from "@octokit/rest";
+import {
+  sha256,
+  buildAttestationMessage,
+  signAttestation,
+  getVerifierPubkeyBytes,
+  decodeBase58Pubkey,
+} from "@/app/lib/attestation";
+import { withX402Payment, type RouteHandler } from "@/app/lib/x402-middleware";
+import bs58 from "bs58";
 
 interface GitHubRequest {
   participant_pubkey: string;
@@ -47,13 +53,27 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   try {
     body = (await req.json()) as GitHubRequest;
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { participant_pubkey, streak_pubkey, day_index, github_username, expected_photo_hash } = body;
+  const {
+    participant_pubkey,
+    streak_pubkey,
+    day_index,
+    github_username,
+    expected_photo_hash,
+  } = body;
 
-  if (!participant_pubkey || !streak_pubkey || day_index === undefined || !github_username) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  if (
+    !participant_pubkey ||
+    !streak_pubkey ||
+    day_index === undefined ||
+    !github_username
+  ) {
+    return NextResponse.json(
+      { error: "Missing required fields" },
+      { status: 400 }
+    );
   }
 
   const octokit = new Octokit({ auth: process.env.GITHUB_APP_TOKEN });
@@ -74,37 +94,46 @@ async function handler(req: NextRequest): Promise<NextResponse> {
       if ((data as unknown as GitHubEvent[]).length < 100) break; // no more pages
     }
   } catch {
-    return NextResponse.json(
-      { verdict: false, reason: 'Could not fetch GitHub events for this user', verifier_signature: null }
-    );
+    return NextResponse.json({
+      verdict: false,
+      reason: "Could not fetch GitHub events for this user",
+      verifier_signature: null,
+    });
   }
 
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
   const candidateEvents = expected_photo_hash
     ? events // dispute resolution: search all fetched events, no time filter
-    : events.filter((e) => e.created_at && new Date(e.created_at).getTime() >= cutoff);
+    : events.filter(
+        (e) => e.created_at && new Date(e.created_at).getTime() >= cutoff
+      );
 
   let qualifyingEventId: string | null = null;
 
   for (const event of candidateEvents) {
     // When resolving a dispute, only accept the event whose hash matches the original attestation.
     if (expected_photo_hash) {
-      const eventSeed = Buffer.from(event.id, 'utf-8');
-      const candidateHash = createHash('sha256').update(eventSeed).digest('hex');
+      const eventSeed = Buffer.from(event.id, "utf-8");
+      const candidateHash = createHash("sha256")
+        .update(eventSeed)
+        .digest("hex");
       if (candidateHash !== expected_photo_hash) continue;
       // Hash matches — this is the original event regardless of type.
       qualifyingEventId = event.id;
       break;
     }
-    if (event.type === 'PushEvent') {
+    if (event.type === "PushEvent") {
       const commits = event.payload.commits ?? [];
       if (commits.length === 0) continue;
 
       // Anti-cheat: skip pushes where ALL commits only touch README.md in a repo created < 24h ago
-      const [owner, repo] = event.repo.name.split('/');
+      const [owner, repo] = event.repo.name.split("/");
       let isNewRepo = false;
       try {
-        const { data: repoData } = await octokit.rest.repos.get({ owner, repo }) as { data: RepoInfo };
+        const { data: repoData } = (await octokit.rest.repos.get({
+          owner,
+          repo,
+        })) as { data: RepoInfo };
         if (repoData.created_at) {
           isNewRepo = new Date(repoData.created_at).getTime() >= cutoff;
         }
@@ -116,13 +145,15 @@ async function handler(req: NextRequest): Promise<NextResponse> {
         let allReadme = true;
         for (const commit of commits) {
           try {
-            const { data: commitData } = await octokit.rest.repos.getCommit({
+            const { data: commitData } = (await octokit.rest.repos.getCommit({
               owner,
               repo,
               ref: commit.sha,
-            }) as { data: CommitDetail };
+            })) as { data: CommitDetail };
             const files = commitData.files ?? [];
-            const onlyReadme = files.every((f) => f.filename.toLowerCase() === 'readme.md');
+            const onlyReadme = files.every(
+              (f) => f.filename.toLowerCase() === "readme.md"
+            );
             if (!onlyReadme) {
               allReadme = false;
               break;
@@ -139,18 +170,18 @@ async function handler(req: NextRequest): Promise<NextResponse> {
       break;
     }
 
-    if (event.type === 'PullRequestEvent') {
+    if (event.type === "PullRequestEvent") {
       const action = event.payload.action;
       const merged = event.payload.pull_request?.merged;
-      if (action === 'opened' || (action === 'closed' && merged)) {
+      if (action === "opened" || (action === "closed" && merged)) {
         qualifyingEventId = event.id;
         break;
       }
     }
 
-    if (event.type === 'CreateEvent') {
+    if (event.type === "CreateEvent") {
       const refType = event.payload.ref_type;
-      if (refType === 'repository' || refType === 'branch') {
+      if (refType === "repository" || refType === "branch") {
         qualifyingEventId = event.id;
         break;
       }
@@ -160,19 +191,19 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   if (!qualifyingEventId) {
     return NextResponse.json({
       verdict: false,
-      reason: 'No qualifying GitHub activity in the last 24 hours',
+      reason: "No qualifying GitHub activity in the last 24 hours",
       verifier_signature: null,
     });
   }
 
   // Deterministic hashes seeded from the event ID
-  const eventSeed = Buffer.from(qualifyingEventId, 'utf-8');
-  const seedHash = createHash('sha256').update(eventSeed).digest();
+  const eventSeed = Buffer.from(qualifyingEventId, "utf-8");
+  const seedHash = createHash("sha256").update(eventSeed).digest();
   const photoHash = seedHash;
   // phash = first 8 bytes of sha256(eventId) interpreted as u64 LE
   const phashView = new DataView(seedHash.buffer, seedHash.byteOffset, 8);
   const phash = phashView.getBigUint64(0, true);
-  const phashHex = phash.toString(16).padStart(16, '0');
+  const phashHex = phash.toString(16).padStart(16, "0");
 
   const reason = `Qualifying GitHub activity detected (event ${qualifyingEventId})`;
   const reasonHash = sha256(reason);
@@ -196,16 +227,16 @@ async function handler(req: NextRequest): Promise<NextResponse> {
   return NextResponse.json({
     verdict: true,
     reason,
-    photo_hash: Buffer.from(photoHash).toString('hex'),
+    photo_hash: Buffer.from(photoHash).toString("hex"),
     phash: phashHex,
-    reason_hash: Buffer.from(reasonHash).toString('hex'),
-    verifier_signature: Buffer.from(signature).toString('hex'),
+    reason_hash: Buffer.from(reasonHash).toString("hex"),
+    verifier_signature: Buffer.from(signature).toString("hex"),
     verifier_pubkey: bs58.encode(verifierPubkeyBytes),
   });
 }
 
 export const POST: RouteHandler = withX402Payment(handler, {
   amount: 1000,
-  recipient: process.env.VERIFICATION_FEE_WALLET ?? '',
-  description: 'GitHub activity verification for coding habit check-in',
+  recipient: process.env.VERIFICATION_FEE_WALLET ?? "",
+  description: "GitHub activity verification for coding habit check-in",
 });
