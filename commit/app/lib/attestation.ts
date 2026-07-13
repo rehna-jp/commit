@@ -1,10 +1,10 @@
 // Builds and signs the 171-byte on-chain attestation message
-import { createHash } from 'node:crypto';
-import nacl from 'tweetnacl';
-import bs58 from 'bs58';
+import { createHash } from "node:crypto";
+import nacl from "tweetnacl";
+import bs58 from "bs58";
 
 export function sha256(data: Buffer | Uint8Array | string): Buffer {
-  return createHash('sha256').update(data).digest();
+  return createHash("sha256").update(data).digest();
 }
 
 interface AttestationParams {

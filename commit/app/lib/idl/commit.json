@@ -8,16 +8,7 @@
   "instructions": [
     {
       "name": "cancel_streak",
-      "discriminator": [
-        81,
-        235,
-        185,
-        118,
-        122,
-        237,
-        137,
-        38
-      ],
+      "discriminator": [81, 235, 185, 118, 122, 237, 137, 38],
       "accounts": [
         {
           "name": "streak",
@@ -26,14 +17,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  114,
-                  101,
-                  97,
-                  107
-                ]
+                "value": [115, 116, 114, 101, 97, 107]
               },
               {
                 "kind": "account",
@@ -55,13 +39,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  104,
-                  97,
-                  115,
-                  104
-                ]
+                "value": [112, 104, 97, 115, 104]
               },
               {
                 "kind": "account",
@@ -77,14 +55,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -118,23 +89,12 @@
     },
     {
       "name": "claim_reward",
-      "discriminator": [
-        149,
-        95,
-        181,
-        242,
-        94,
-        90,
-        158,
-        162
-      ],
+      "discriminator": [149, 95, 181, 242, 94, 90, 158, 162],
       "accounts": [
         {
           "name": "streak",
           "writable": true,
-          "relations": [
-            "participant"
-          ]
+          "relations": ["participant"]
         },
         {
           "name": "participant",
@@ -143,19 +103,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  105,
-                  112,
-                  97,
-                  110,
-                  116
-                ]
+                "value": [112, 97, 114, 116, 105, 99, 105, 112, 97, 110, 116]
               },
               {
                 "kind": "account",
@@ -175,14 +123,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -214,13 +155,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  114,
-                  111,
-                  111,
-                  102
-                ]
+                "value": [112, 114, 111, 111, 102]
               },
               {
                 "kind": "account",
@@ -263,16 +198,7 @@
     },
     {
       "name": "create_streak",
-      "discriminator": [
-        121,
-        38,
-        140,
-        196,
-        52,
-        42,
-        69,
-        232
-      ],
+      "discriminator": [121, 38, 140, 196, 52, 42, 69, 232],
       "accounts": [
         {
           "name": "streak",
@@ -281,14 +207,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  115,
-                  116,
-                  114,
-                  101,
-                  97,
-                  107
-                ]
+                "value": [115, 116, 114, 101, 97, 107]
               },
               {
                 "kind": "account",
@@ -308,13 +227,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  104,
-                  97,
-                  115,
-                  104
-                ]
+                "value": [112, 104, 97, 115, 104]
               },
               {
                 "kind": "account",
@@ -330,14 +243,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -380,29 +286,15 @@
     },
     {
       "name": "dispute_checkin",
-      "discriminator": [
-        84,
-        122,
-        14,
-        225,
-        178,
-        200,
-        13,
-        156
-      ],
+      "discriminator": [84, 122, 14, 225, 178, 200, 13, 156],
       "accounts": [
         {
           "name": "streak",
-          "relations": [
-            "attestation",
-            "disputer_participant"
-          ]
+          "relations": ["attestation", "disputer_participant"]
         },
         {
           "name": "target_participant",
-          "docs": [
-            "The participant whose check-in is being disputed"
-          ]
+          "docs": ["The participant whose check-in is being disputed"]
         },
         {
           "name": "attestation",
@@ -411,19 +303,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  116,
-                  116,
-                  101,
-                  115,
-                  116,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "account",
@@ -439,9 +319,7 @@
         },
         {
           "name": "disputer_participant",
-          "docs": [
-            "The disputer's own Participant account in this streak"
-          ]
+          "docs": ["The disputer's own Participant account in this streak"]
         },
         {
           "name": "disputer_token_account",
@@ -454,14 +332,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -491,23 +362,12 @@
     },
     {
       "name": "expire_dispute",
-      "discriminator": [
-        241,
-        116,
-        178,
-        182,
-        234,
-        173,
-        61,
-        120
-      ],
+      "discriminator": [241, 116, 178, 182, 234, 173, 61, 120],
       "accounts": [
         {
           "name": "streak",
           "writable": true,
-          "relations": [
-            "attestation"
-          ]
+          "relations": ["attestation"]
         },
         {
           "name": "target_participant",
@@ -520,19 +380,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  116,
-                  116,
-                  101,
-                  115,
-                  116,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "account",
@@ -561,14 +409,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -582,9 +423,7 @@
         },
         {
           "name": "caller",
-          "docs": [
-            "Permissionless — anyone can trigger expiry"
-          ],
+          "docs": ["Permissionless — anyone can trigger expiry"],
           "signer": true
         },
         {
@@ -600,16 +439,7 @@
     },
     {
       "name": "finalize_checkin",
-      "discriminator": [
-        208,
-        31,
-        28,
-        61,
-        7,
-        215,
-        252,
-        56
-      ],
+      "discriminator": [208, 31, 28, 61, 7, 215, 252, 56],
       "accounts": [
         {
           "name": "attestation",
@@ -622,19 +452,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  105,
-                  112,
-                  97,
-                  110,
-                  116
-                ]
+                "value": [112, 97, 114, 116, 105, 99, 105, 112, 97, 110, 116]
               },
               {
                 "kind": "account",
@@ -651,9 +469,7 @@
         },
         {
           "name": "streak",
-          "relations": [
-            "participant"
-          ]
+          "relations": ["participant"]
         },
         {
           "name": "phash_registry",
@@ -662,13 +478,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  104,
-                  97,
-                  115,
-                  104
-                ]
+                "value": [112, 104, 97, 115, 104]
               },
               {
                 "kind": "account",
@@ -680,9 +490,7 @@
         },
         {
           "name": "caller",
-          "docs": [
-            "Permissionless — anyone can finalize after the window"
-          ],
+          "docs": ["Permissionless — anyone can finalize after the window"],
           "signer": true
         }
       ],
@@ -690,16 +498,7 @@
     },
     {
       "name": "join_streak",
-      "discriminator": [
-        183,
-        193,
-        86,
-        153,
-        213,
-        86,
-        105,
-        47
-      ],
+      "discriminator": [183, 193, 86, 153, 213, 86, 105, 47],
       "accounts": [
         {
           "name": "streak",
@@ -712,19 +511,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  105,
-                  112,
-                  97,
-                  110,
-                  116
-                ]
+                "value": [112, 97, 114, 116, 105, 99, 105, 112, 97, 110, 116]
               },
               {
                 "kind": "account",
@@ -748,14 +535,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -785,23 +565,12 @@
     },
     {
       "name": "resolve_dispute",
-      "discriminator": [
-        231,
-        6,
-        202,
-        6,
-        96,
-        103,
-        12,
-        230
-      ],
+      "discriminator": [231, 6, 202, 6, 96, 103, 12, 230],
       "accounts": [
         {
           "name": "streak",
           "writable": true,
-          "relations": [
-            "attestation"
-          ]
+          "relations": ["attestation"]
         },
         {
           "name": "target_participant",
@@ -814,19 +583,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  116,
-                  116,
-                  101,
-                  115,
-                  116,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "account",
@@ -859,14 +616,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -880,9 +630,7 @@
         },
         {
           "name": "resolver",
-          "docs": [
-            "Anyone can call resolve — permissionless"
-          ],
+          "docs": ["Anyone can call resolve — permissionless"],
           "signer": true
         },
         {
@@ -911,23 +659,12 @@
     },
     {
       "name": "slash_missed",
-      "discriminator": [
-        233,
-        233,
-        85,
-        66,
-        121,
-        155,
-        236,
-        95
-      ],
+      "discriminator": [233, 233, 85, 66, 121, 155, 236, 95],
       "accounts": [
         {
           "name": "streak",
           "writable": true,
-          "relations": [
-            "participant"
-          ]
+          "relations": ["participant"]
         },
         {
           "name": "participant",
@@ -936,19 +673,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  105,
-                  112,
-                  97,
-                  110,
-                  116
-                ]
+                "value": [112, 97, 114, 116, 105, 99, 105, 112, 97, 110, 116]
               },
               {
                 "kind": "account",
@@ -972,9 +697,7 @@
         },
         {
           "name": "caller",
-          "docs": [
-            "Permissionless — anyone can slash after the grace period"
-          ],
+          "docs": ["Permissionless — anyone can slash after the grace period"],
           "signer": true
         }
       ],
@@ -982,23 +705,11 @@
     },
     {
       "name": "submit_checkin_with_attestation",
-      "discriminator": [
-        132,
-        208,
-        246,
-        70,
-        210,
-        5,
-        42,
-        207
-      ],
+      "discriminator": [132, 208, 246, 70, 210, 5, 42, 207],
       "accounts": [
         {
           "name": "streak",
-          "relations": [
-            "participant",
-            "phash_registry"
-          ]
+          "relations": ["participant", "phash_registry"]
         },
         {
           "name": "participant",
@@ -1007,19 +718,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  105,
-                  112,
-                  97,
-                  110,
-                  116
-                ]
+                "value": [112, 97, 114, 116, 105, 99, 105, 112, 97, 110, 116]
               },
               {
                 "kind": "account",
@@ -1039,19 +738,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  97,
-                  116,
-                  116,
-                  101,
-                  115,
-                  116,
-                  97,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
+                "value": [97, 116, 116, 101, 115, 116, 97, 116, 105, 111, 110]
               },
               {
                 "kind": "account",
@@ -1070,13 +757,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  104,
-                  97,
-                  115,
-                  104
-                ]
+                "value": [112, 104, 97, 115, 104]
               },
               {
                 "kind": "account",
@@ -1112,23 +793,12 @@
     },
     {
       "name": "withdraw_failed",
-      "discriminator": [
-        235,
-        53,
-        122,
-        63,
-        87,
-        220,
-        130,
-        215
-      ],
+      "discriminator": [235, 53, 122, 63, 87, 220, 130, 215],
       "accounts": [
         {
           "name": "streak",
           "writable": true,
-          "relations": [
-            "participant"
-          ]
+          "relations": ["participant"]
         },
         {
           "name": "participant",
@@ -1137,19 +807,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  112,
-                  97,
-                  114,
-                  116,
-                  105,
-                  99,
-                  105,
-                  112,
-                  97,
-                  110,
-                  116
-                ]
+                "value": [112, 97, 114, 116, 105, 99, 105, 112, 97, 110, 116]
               },
               {
                 "kind": "account",
@@ -1169,14 +827,7 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [
-                  101,
-                  115,
-                  99,
-                  114,
-                  111,
-                  119
-                ]
+                "value": [101, 115, 99, 114, 111, 119]
               },
               {
                 "kind": "account",
@@ -1208,68 +859,23 @@
   "accounts": [
     {
       "name": "CheckinAttestation",
-      "discriminator": [
-        32,
-        251,
-        93,
-        23,
-        232,
-        162,
-        17,
-        242
-      ]
+      "discriminator": [32, 251, 93, 23, 232, 162, 17, 242]
     },
     {
       "name": "Participant",
-      "discriminator": [
-        32,
-        142,
-        108,
-        79,
-        247,
-        179,
-        54,
-        6
-      ]
+      "discriminator": [32, 142, 108, 79, 247, 179, 54, 6]
     },
     {
       "name": "PhashRegistry",
-      "discriminator": [
-        124,
-        77,
-        98,
-        159,
-        204,
-        36,
-        89,
-        106
-      ]
+      "discriminator": [124, 77, 98, 159, 204, 36, 89, 106]
     },
     {
       "name": "Streak",
-      "discriminator": [
-        59,
-        180,
-        36,
-        87,
-        69,
-        188,
-        77,
-        88
-      ]
+      "discriminator": [59, 180, 36, 87, 69, 188, 77, 88]
     },
     {
       "name": "StreakProof",
-      "discriminator": [
-        185,
-        131,
-        91,
-        117,
-        67,
-        172,
-        131,
-        96
-      ]
+      "discriminator": [185, 131, 91, 117, 67, 172, 131, 96]
     }
   ],
   "errors": [
@@ -1465,10 +1071,7 @@
           {
             "name": "photo_hash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1478,10 +1081,7 @@
           {
             "name": "verifier_signature",
             "type": {
-              "array": [
-                "u8",
-                64
-              ]
+              "array": ["u8", 64]
             }
           },
           {
@@ -1491,10 +1091,7 @@
           {
             "name": "reason_hash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1689,19 +1286,13 @@
           {
             "name": "counter_reason_hash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "counter_signature",
             "type": {
-              "array": [
-                "u8",
-                64
-              ]
+              "array": ["u8", 64]
             }
           }
         ]
@@ -1824,10 +1415,7 @@
             "name": "attestation_hashes",
             "type": {
               "vec": {
-                "array": [
-                  "u8",
-                  32
-                ]
+                "array": ["u8", 32]
               }
             }
           },
@@ -1858,10 +1446,7 @@
           {
             "name": "photo_hash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
@@ -1875,19 +1460,13 @@
           {
             "name": "reason_hash",
             "type": {
-              "array": [
-                "u8",
-                32
-              ]
+              "array": ["u8", 32]
             }
           },
           {
             "name": "verifier_signature",
             "type": {
-              "array": [
-                "u8",
-                64
-              ]
+              "array": ["u8", 64]
             }
           }
         ]

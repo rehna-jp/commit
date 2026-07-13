@@ -62,6 +62,7 @@ The contract doesn't care about habit type — it cares about the attestation si
 ## Smart Contract Overview
 
 ### 5 Account Types
+
 - **Streak** — PDA `[b"streak", creator, name]`. Holds config, pool, escrow reference.
 - **Participant** — PDA `[b"participant", streak, user]`. Stake, streak count, active status.
 - **CheckinAttestation** — PDA `[b"attestation", participant, day_index]`. Signed verdict, dispute state, pHash.
@@ -69,6 +70,7 @@ The contract doesn't care about habit type — it cares about the attestation si
 - **StreakProof** — PDA `[b"proof", streak, owner]`. Completion record for NFT metadata.
 
 ### 8 Instructions
+
 1. `create_streak` — init Streak + PhashRegistry + USDC escrow
 2. `join_streak` — transfer stake into escrow, create Participant
 3. `submit_checkin_with_attestation` — verify ed25519 sig, check pHash, create Pending attestation
@@ -79,6 +81,7 @@ The contract doesn't care about habit type — it cares about the attestation si
 8. `claim_reward` — return stake + pool share, mint Token-2022 NFT, create StreakProof
 
 ### Constants
+
 ```
 DISPUTE_WINDOW: 86,400 seconds (24h)
 DISPUTE_BOND: 10% of stake
@@ -90,6 +93,7 @@ SLASH_GRACE_PERIOD: 172,800 seconds (48h)
 ## Verification API Overview
 
 ### 4 Endpoints
+
 - `POST /api/verify-checkin` — photo → Claude → signed attestation (171-byte message)
 - `POST /api/verify-counter` — same input, stricter dispute prompt
 - `POST /api/verify-github` — GitHub events → signed attestation (Code habit only)
@@ -98,14 +102,17 @@ SLASH_GRACE_PERIOD: 172,800 seconds (48h)
 x402 micropayment layer on verification endpoints (P1 — $500 bonus). Feature-flagged via NEXT_PUBLIC_X402_ENABLED.
 
 ### Attestation Message Layout (171 bytes)
+
 ```
 VERIFIER_PUBKEY  (32) || participant  (32) || streak  (32)
 || day_index  (2, u16 LE) || photo_hash  (32) || phash  (8, u64 LE)
 || verdict  (1) || reason_hash  (32)
 ```
+
 Signed with ed25519 via tweetnacl. Verified on-chain via Solana's native ed25519 program.
 
 ### Prompt Injection Sanitization
+
 Custom habit_prompt fields are untrusted. Truncate to 256 chars, strip control characters, reject known jailbreak prefixes, wrap in `<user_provided_criteria>` delimiters.
 
 ## Critical Architecture Rules
@@ -132,12 +139,14 @@ IMPORTANT: These rules are non-negotiable. Getting them wrong breaks the core se
 ## Design System
 
 ### Logo
+
 - Logo file: `/public/commit-logo.png`
 - Use on: landing page hero, navbar, favicon, README header
 - On dark backgrounds place directly (logo has dark bg built in)
 - Wordmark: `commit.` with lilac (#be95c4) dot for text contexts
 
 ### Colors — Amethyst Palette
+
 ```
 dark_amethyst:   #231942  — dark mode bg, hero sections, secondary buttons
 dusty_grape:     #5e548e  — primary buttons, active card left-borders, key values, progress fills
@@ -147,6 +156,7 @@ pink_orchid:     #e0b1cb  — habit chip bg, soft button fills, empty states
 ```
 
 ### Semantic States — NEVER use purple for these
+
 ```
 Pending:    amber  — bg #FEF3C7, text #92400E, dot #F59E0B
 Disputed:   blue   — bg #DBEAFE, text #1E40AF, dot #3B82F6
@@ -156,6 +166,7 @@ Slashed:    red    — bg #FEE2E2, text #991B1B, dot #EF4444
 ```
 
 ### Component Rules
+
 - Active cards: 3px left border in grape (light) / smoke (dark)
 - Progress bars: solid grape fill, NO gradients
 - Habit chips: orchid-900 (#f9f0f5) bg, orchid-800 border, grape icons
@@ -166,10 +177,12 @@ Slashed:    red    — bg #FEE2E2, text #991B1B, dot #EF4444
 - Habit icons (Lucide): Code=Code2, Read=BookOpen, Write=PenLine, Design=Palette, Gym=Dumbbell
 
 ### Typography
-- h1: 32px/500/-0.02em  |  h2: 22px/500  |  body: 15px/400/zinc-500
+
+- h1: 32px/500/-0.02em | h2: 22px/500 | body: 15px/400/zinc-500
 - Two weights only: 400 and 500. Never 600/700.
 
 ## Environment Variables
+
 ```
 NEXT_PUBLIC_SOLANA_RPC, NEXT_PUBLIC_PROGRAM_ID, NEXT_PUBLIC_USDC_MINT
 NEXT_PUBLIC_LIFI_INTEGRATOR=commit

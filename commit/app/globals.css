@@ -68,7 +68,7 @@
 
 /* Amethyst brand palette */
 @theme {
-  --color-amethyst-50:  #ccc2e8;
+  --color-amethyst-50: #ccc2e8;
   --color-amethyst-100: #07050d;
   --color-amethyst-200: #0e0a1b;
   --color-amethyst-300: #150f28;
@@ -79,7 +79,7 @@
   --color-amethyst-800: #9986d1;
   --color-amethyst-900: #ccc2e8;
 
-  --color-grape-50:  #dddbea;
+  --color-grape-50: #dddbea;
   --color-grape-100: #13111c;
   --color-grape-200: #252139;
   --color-grape-300: #383255;
@@ -90,7 +90,7 @@
   --color-grape-800: #bcb7d5;
   --color-grape-900: #dddbea;
 
-  --color-smoke-50:  #ece7f3;
+  --color-smoke-50: #ece7f3;
   --color-smoke-100: #1f162b;
   --color-smoke-200: #3e2c56;
   --color-smoke-300: #5e4381;
@@ -101,7 +101,7 @@
   --color-smoke-800: #d9cfe6;
   --color-smoke-900: #ece7f3;
 
-  --color-lilac-50:  #f2eaf3;
+  --color-lilac-50: #f2eaf3;
   --color-lilac-100: #2a192c;
   --color-lilac-200: #543259;
   --color-lilac-300: #7d4b85;
@@ -112,7 +112,7 @@
   --color-lilac-800: #e5d5e7;
   --color-lilac-900: #f2eaf3;
 
-  --color-orchid-50:  #f9f0f5;
+  --color-orchid-50: #f9f0f5;
   --color-orchid-100: #3a172a;
   --color-orchid-200: #732e54;
   --color-orchid-300: #ad457e;
@@ -135,12 +135,21 @@
   }
 
   @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   @keyframes float {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
   }
 }

@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { Code2, BookOpen, PenLine, Palette, Dumbbell } from 'lucide-react';
-import { HabitType } from '@/app/lib/types';
+import { Code2, BookOpen, PenLine, Palette, Dumbbell } from "lucide-react";
+import { HabitType } from "@/app/lib/types";
 
 const HABIT_OPTIONS = [
-  { value: HabitType.Code, label: 'Code', Icon: Code2 },
-  { value: HabitType.Read, label: 'Read', Icon: BookOpen },
-  { value: HabitType.Write, label: 'Write', Icon: PenLine },
-  { value: HabitType.Design, label: 'Design', Icon: Palette },
-  { value: HabitType.Gym, label: 'Gym', Icon: Dumbbell },
+  { value: HabitType.Code, label: "Code", Icon: Code2 },
+  { value: HabitType.Read, label: "Read", Icon: BookOpen },
+  { value: HabitType.Write, label: "Write", Icon: PenLine },
+  { value: HabitType.Design, label: "Design", Icon: Palette },
+  { value: HabitType.Gym, label: "Gym", Icon: Dumbbell },
 ] as const;
 
 interface Props {
@@ -29,14 +29,17 @@ export function HabitTypeSelector({ value, onChange, disabled }: Props) {
             disabled={disabled}
             onClick={() => onChange(v)}
             className={[
-              'inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all',
+              "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all",
               active
-                ? 'bg-grape-500 text-white border-grape-500 shadow-[0_0_15px_rgba(94,84,142,0.5)]'
-                : 'bg-black/20 border-white/5 text-smoke-500 hover:text-white hover:border-grape-500/50 hover:bg-white/5',
-              disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-            ].join(' ')}
+                ? "bg-grape-500 text-white border-grape-500 shadow-[0_0_15px_rgba(94,84,142,0.5)]"
+                : "bg-black/20 border-white/5 text-smoke-500 hover:text-white hover:border-grape-500/50 hover:bg-white/5",
+              disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+            ].join(" ")}
           >
-            <Icon size={14} className={active ? 'text-white' : 'text-smoke-500'} />
+            <Icon
+              size={14}
+              className={active ? "text-white" : "text-smoke-500"}
+            />
             {label}
           </button>
         );

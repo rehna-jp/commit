@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { AlertTriangle, Loader2 } from 'lucide-react';
-import { formatUsdc } from '@/app/lib/constants';
+import { useState } from "react";
+import { AlertTriangle, Loader2 } from "lucide-react";
+import { formatUsdc } from "@/app/lib/constants";
 
 interface Props {
   streakId: string;
@@ -40,19 +40,24 @@ export function DisputeButton({ bondAmount, onDispute }: Props) {
           <div className="bg-white dark:bg-grape-200 border border-zinc-200 dark:border-grape-300 rounded-2xl p-6 max-w-sm w-full">
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle size={18} className="text-amber-500" />
-              <h3 className="text-sm font-medium text-zinc-900 dark:text-white">File a Dispute</h3>
+              <h3 className="text-sm font-medium text-zinc-900 dark:text-white">
+                File a Dispute
+              </h3>
             </div>
 
             <p className="text-sm text-zinc-600 dark:text-smoke-600 mb-4">
-              You will lock{' '}
+              You will lock{" "}
               <span className="font-mono font-medium text-grape-500">
                 {formatUsdc(bondAmount)} USDC
-              </span>{' '}
+              </span>{" "}
               as a dispute bond.
             </p>
 
             <div className="bg-zinc-50 dark:bg-grape-300 rounded-xl p-3 mb-4 space-y-1.5 text-xs text-zinc-500 dark:text-smoke-600">
-              <p>✓ If your dispute succeeds, you get your bond back plus a 30% bounty.</p>
+              <p>
+                ✓ If your dispute succeeds, you get your bond back plus a 30%
+                bounty.
+              </p>
               <p>✗ If your dispute fails, you lose the bond.</p>
             </div>
 

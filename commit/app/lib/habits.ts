@@ -1,5 +1,5 @@
 // Habit verification prompts (primary check and skeptical dispute counter) per habit type
-export type HabitType = 'Code' | 'Read' | 'Write' | 'Design' | 'Gym';
+export type HabitType = "Code" | "Read" | "Write" | "Design" | "Gym";
 
 interface HabitPrompts {
   primary: string;

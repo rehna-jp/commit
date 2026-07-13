@@ -36,8 +36,8 @@ const { privateKey, publicKey } = generateKeyPairSync("ed25519", {
   publicKeyEncoding: { type: "spki", format: "der" },
 });
 
-const seedBytes = privateKey.slice(16);       // 32-byte private seed
-const pubkeyBytes = publicKey.slice(12);      // 32-byte public key
+const seedBytes = privateKey.slice(16); // 32-byte private seed
+const pubkeyBytes = publicKey.slice(12); // 32-byte public key
 
 // tweetnacl secret key = seed (32) || pubkey (32) = 64 bytes
 const secretKeyBytes = Buffer.concat([seedBytes, pubkeyBytes]);

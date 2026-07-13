@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Trophy } from 'lucide-react';
-import type { Participant } from '@/app/lib/types';
+import { Trophy } from "lucide-react";
+import type { Participant } from "@/app/lib/types";
 
 interface Props {
   participants: Participant[];
@@ -12,7 +12,9 @@ function truncate(addr: string) {
 }
 
 export function Leaderboard({ participants }: Props) {
-  const sorted = [...participants].sort((a, b) => b.currentStreak - a.currentStreak);
+  const sorted = [...participants].sort(
+    (a, b) => b.currentStreak - a.currentStreak
+  );
 
   if (sorted.length === 0) {
     return (
@@ -30,7 +32,13 @@ export function Leaderboard({ participants }: Props) {
           className="flex items-center gap-4 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors border border-transparent hover:border-white/5"
         >
           <span className="w-8 text-center text-sm font-bold text-smoke-600">
-            {idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}
+            {idx === 0
+              ? "🥇"
+              : idx === 1
+                ? "🥈"
+                : idx === 2
+                  ? "🥉"
+                  : `${idx + 1}`}
           </span>
 
           <div className="flex-1 min-w-0">
@@ -46,10 +54,10 @@ export function Leaderboard({ participants }: Props) {
             <span
               className={`flex items-center justify-center w-5 h-5 rounded-full ${
                 !p.isActive
-                  ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  ? "bg-red-500/20 text-red-400 border border-red-500/30"
                   : p.hasClaimed
-                    ? 'bg-grape-500/20 text-grape-400 border border-grape-500/30 shadow-[0_0_10px_rgba(94,84,142,0.5)]'
-                    : 'bg-green-500/20 border border-green-500/30 shadow-[0_0_8px_rgba(74,222,128,0.4)]'
+                    ? "bg-grape-500/20 text-grape-400 border border-grape-500/30 shadow-[0_0_10px_rgba(94,84,142,0.5)]"
+                    : "bg-green-500/20 border border-green-500/30 shadow-[0_0_8px_rgba(74,222,128,0.4)]"
               }`}
             >
               {p.hasClaimed ? (
