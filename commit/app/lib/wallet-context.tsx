@@ -5,6 +5,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import { Connection, PublicKey, Transaction } from "@solana/web3.js";
@@ -12,18 +13,22 @@ import { SOLANA_RPC } from "./constants";
 
 interface SolanaProvider {
   isPhantom?: boolean;
-  publicKey: { toBytes(): Uint8Array; toString(): string } | null;
+  isSolflare?: boolean;
+  isBackpack?: boolean;
+  publicKey: { toBytes(): Uint8Array; toString(): string; toBase58?(): string } | null;
   isConnected: boolean;
   connect(opts?: {
     onlyIfTrusted?: boolean;
-  }): Promise<{ publicKey: { toString(): string } }>;
+  }): Promise<{ publicKey?: { toString(): string } } | void>;
   disconnect(): Promise<void>;
   signTransaction(tx: Transaction): Promise<Transaction>;
   signAllTransactions(txs: Transaction[]): Promise<Transaction[]>;
-  signAndSendTransaction(
+  signAndSendTransaction?(
     tx: Transaction,
     opts?: object
   ): Promise<{ signature: string }>;
+  on?(event: string, handler: (...args: unknown[]) => void): void;
+  removeListener?(event: string, handler: (...args: unknown[]) => void): void;
 }
 
 function getProvider(): SolanaProvider | null {
@@ -32,9 +37,58 @@ function getProvider(): SolanaProvider | null {
     phantom?: { solana?: SolanaProvider };
     solana?: SolanaProvider;
     solflare?: SolanaProvider;
+    backpack?: SolanaProvider;
   };
-  // Prefer Phantom's namespaced provider, fall back to window.solana
-  return w.phantom?.solana ?? w.solana ?? w.solflare ?? null;
+  // Prefer Phantom's namespaced provider, fall back to Solflare, Backpack, or window.solana
+  return w.phantom?.solana ?? w.solflare ?? w.backpack ?? w.solana ?? null;
+}
+
+function extractPublicKey(
+  resp: unknown,
+  provider: SolanaProvider | null
+): PublicKey | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const candidate =
+    (resp as any)?.publicKey ??
+    provider?.publicKey ??
+    (resp as any)?.address ??
+    (provider as any)?.address;
+
+  if (!candidate) return null;
+
+  try {
+    if (candidate instanceof PublicKey) {
+      return candidate;
+    }
+    if (typeof candidate === "string") {
+      return new PublicKey(candidate);
+    }
+    if (typeof candidate === "object") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof (candidate as any).toBase58 === "function") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return new PublicKey((candidate as any).toBase58());
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof (candidate as any).toString === "function") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const str = (candidate as any).toString();
+        if (str && str !== "[object Object]") {
+          return new PublicKey(str);
+        }
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof (candidate as any).toBytes === "function") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return new PublicKey((candidate as any).toBytes());
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return new PublicKey(candidate as any);
+  } catch (err) {
+    console.warn("Failed to extract wallet public key:", err);
+    return null;
+  }
 }
 
 interface WalletCtx {
@@ -63,6 +117,60 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
   const [publicKey, setPublicKey] = useState<PublicKey | null>(null);
   const [connecting, setConnecting] = useState(false);
 
+  // Eager connect & event listeners (connect, disconnect, accountChanged)
+  useEffect(() => {
+    const provider = getProvider();
+    if (!provider) return;
+
+    const handleConnect = (pk?: unknown) => {
+      const key = extractPublicKey(pk ? { publicKey: pk } : null, provider);
+      if (key) setPublicKey(key);
+    };
+
+    const handleDisconnect = () => {
+      setPublicKey(null);
+    };
+
+    const handleAccountChanged = (pk?: unknown) => {
+      if (pk) {
+        const key = extractPublicKey({ publicKey: pk }, provider);
+        setPublicKey(key);
+      } else {
+        const key = extractPublicKey(null, provider);
+        setPublicKey(key);
+      }
+    };
+
+    if (typeof provider.on === "function") {
+      provider.on("connect", handleConnect);
+      provider.on("disconnect", handleDisconnect);
+      provider.on("accountChanged", handleAccountChanged);
+    }
+
+    if (provider.isConnected && provider.publicKey) {
+      const key = extractPublicKey(null, provider);
+      if (key) setPublicKey(key);
+    } else if (typeof provider.connect === "function") {
+      provider
+        .connect({ onlyIfTrusted: true })
+        .then((resp) => {
+          const key = extractPublicKey(resp, provider);
+          if (key) setPublicKey(key);
+        })
+        .catch(() => {
+          // User hasn't pre-authorized this origin yet
+        });
+    }
+
+    return () => {
+      if (typeof provider.removeListener === "function") {
+        provider.removeListener("connect", handleConnect);
+        provider.removeListener("disconnect", handleDisconnect);
+        provider.removeListener("accountChanged", handleAccountChanged);
+      }
+    };
+  }, []);
+
   const connect = useCallback(async () => {
     const provider = getProvider();
     if (!provider) {
@@ -72,7 +180,12 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
     setConnecting(true);
     try {
       const resp = await provider.connect();
-      setPublicKey(new PublicKey(resp.publicKey.toString()));
+      const pk = extractPublicKey(resp, provider);
+      if (pk) {
+        setPublicKey(pk);
+      }
+    } catch (err) {
+      console.warn("Wallet connect rejected or failed:", err);
     } finally {
       setConnecting(false);
     }
@@ -80,7 +193,11 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
 
   const disconnect = useCallback(async () => {
     const provider = getProvider();
-    await provider?.disconnect();
+    try {
+      await provider?.disconnect();
+    } catch (err) {
+      console.warn("Wallet disconnect error:", err);
+    }
     setPublicKey(null);
   }, []);
 
@@ -89,17 +206,16 @@ export function WalletContextProvider({ children }: { children: ReactNode }) {
       const provider = getProvider();
       if (!provider || !publicKey) throw new Error("Wallet not connected");
 
-      const { blockhash, lastValidBlockHeight } =
-        await connection.getLatestBlockhash("confirmed");
-      tx.recentBlockhash = blockhash;
-      tx.feePayer = publicKey;
+      if (!tx.recentBlockhash) {
+        const { blockhash } = await connection.getLatestBlockhash("confirmed");
+        tx.recentBlockhash = blockhash;
+      }
+      if (!tx.feePayer) {
+        tx.feePayer = publicKey;
+      }
 
       const signed = await provider.signTransaction(tx);
       const sig = await connection.sendRawTransaction(signed.serialize());
-      await connection.confirmTransaction(
-        { signature: sig, blockhash, lastValidBlockHeight },
-        "confirmed"
-      );
       return sig;
     },
     [publicKey]
@@ -131,3 +247,4 @@ export function useWallet() {
 export function useConnection() {
   return { connection: new Connection(SOLANA_RPC, "confirmed") };
 }
+
